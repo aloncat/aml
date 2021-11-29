@@ -35,6 +35,12 @@
     <ClInclude Include="..\..\core\threadsync.h">
       <Filter>thread</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\array.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\toggle.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">

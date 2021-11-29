@@ -162,12 +162,14 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\core\array.h" />
     <ClInclude Include="..\..\core\forward.h" />
     <ClInclude Include="..\..\core\pch.h" />
     <ClInclude Include="..\..\core\platform.h" />
     <ClInclude Include="..\..\core\randgen.h" />
     <ClInclude Include="..\..\core\thread.h" />
     <ClInclude Include="..\..\core\threadsync.h" />
+    <ClInclude Include="..\..\core\toggle.h" />
     <ClInclude Include="..\..\core\util.h" />
     <ClInclude Include="..\..\core\winapi.h" />
   </ItemGroup>
