@@ -15,3 +15,14 @@ namespace math {
 namespace thread {
 	class CriticalSection;
 }
+
+namespace util {
+	// Классы исключений
+	class EAssertion;
+	class EGeneric;
+	class EHalt;
+	class ELogic;
+	class ERuntime;
+	// Разное
+	class FuncToggle;
+}

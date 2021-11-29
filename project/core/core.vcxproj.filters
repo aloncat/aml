@@ -41,6 +41,9 @@
     <ClInclude Include="..\..\core\toggle.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\exception.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -60,6 +63,9 @@
     </ClCompile>
     <ClCompile Include="..\..\core\threadsync.cpp">
       <Filter>thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\exception.cpp">
+      <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

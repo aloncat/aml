@@ -163,6 +163,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\core\array.h" />
+    <ClInclude Include="..\..\core\exception.h" />
     <ClInclude Include="..\..\core\forward.h" />
     <ClInclude Include="..\..\core\pch.h" />
     <ClInclude Include="..\..\core\platform.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="..\..\core\winapi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\core\exception.cpp" />
     <ClCompile Include="..\..\core\prefix.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
