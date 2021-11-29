@@ -53,7 +53,7 @@ bool WinAPI::s_IsLoaded = false;
 AML_IMPLEMENT_WINAPI_FN(GetTickCount64);
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void WinAPI::Load()
+AML_NOINLINE void WinAPI::Load() noexcept
 {
 	if (HMODULE kernel32 = ::GetModuleHandleA("kernel32.dll"))
 	{

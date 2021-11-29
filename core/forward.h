@@ -11,3 +11,7 @@
 namespace math {
 	class RandGen;
 }
+
+namespace thread {
+	class CriticalSection;
+}

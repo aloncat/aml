@@ -32,6 +32,9 @@
     <ClInclude Include="..\..\core\winapi.h">
       <Filter>platform</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\threadsync.h">
+      <Filter>thread</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -48,6 +51,9 @@
     </ClCompile>
     <ClCompile Include="..\..\core\winapi.cpp">
       <Filter>platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\threadsync.cpp">
+      <Filter>thread</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
