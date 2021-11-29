@@ -1,8 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="math">
+      <UniqueIdentifier>{5c8efb34-bfdf-451a-8041-5e192be45213}</UniqueIdentifier>
+    </Filter>
     <Filter Include="platform">
       <UniqueIdentifier>{5f10ea14-01f3-4fe4-a2db-363d621aad24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thread">
+      <UniqueIdentifier>{eb8a901c-03c3-44dd-946a-5b1ba242d82f}</UniqueIdentifier>
     </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{1cdf1d3c-aa69-4fc6-b82b-9b9d97ae8773}</UniqueIdentifier>
@@ -16,6 +22,16 @@
     <ClInclude Include="..\..\core\util.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\randgen.h">
+      <Filter>math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\forward.h" />
+    <ClInclude Include="..\..\core\thread.h">
+      <Filter>thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\winapi.h">
+      <Filter>platform</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -23,6 +39,15 @@
     </ClCompile>
     <ClCompile Include="..\..\core\util.cpp">
       <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\randgen.cpp">
+      <Filter>math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\thread.cpp">
+      <Filter>thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\winapi.cpp">
+      <Filter>platform</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
