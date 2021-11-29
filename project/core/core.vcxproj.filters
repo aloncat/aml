@@ -56,6 +56,12 @@
     <ClInclude Include="..\..\core\datetime.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\strcommon.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\strutil.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -86,6 +92,9 @@
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="..\..\core\datetime.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\strutil.cpp">
       <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>
