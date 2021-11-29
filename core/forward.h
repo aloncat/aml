@@ -25,4 +25,5 @@ namespace util {
 	class ERuntime;
 	// Разное
 	class FuncToggle;
+	struct DateTime;
 }

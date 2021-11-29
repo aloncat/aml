@@ -164,6 +164,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\core\array.h" />
     <ClInclude Include="..\..\core\crc32.h" />
+    <ClInclude Include="..\..\core\datetime.h" />
     <ClInclude Include="..\..\core\exception.h" />
     <ClInclude Include="..\..\core\fasthash.h" />
     <ClInclude Include="..\..\core\forward.h" />
@@ -178,6 +179,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\crc32.cpp" />
+    <ClCompile Include="..\..\core\datetime.cpp" />
     <ClCompile Include="..\..\core\exception.cpp" />
     <ClCompile Include="..\..\core\fasthash.cpp" />
     <ClCompile Include="..\..\core\prefix.cpp">
