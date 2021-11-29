@@ -136,18 +136,12 @@ static int MBToWide(wchar_t* buffer, size_t bufferSize, MBCodePage codePage, con
 			}
 		} else
 		{
-			count = 0;
-			if (size < 120)
-			{
-				if (size > bufferSize)
-					return -1;
-				count = FastMBToWide(buffer, str, size);
-			}
+			bufferSize = (bufferSize < INT_MAX) ? bufferSize : INT_MAX;
+			count = (size < 120) ? FastMBToWide(buffer, str, (size < bufferSize) ? size : bufferSize) : 0;
 
 			if (count < size)
 			{
-				bufferSize = (bufferSize < INT_MAX) ? bufferSize : INT_MAX;
-				if (size > bufferSize)
+				if (count >= bufferSize)
 					return -1;
 
 				const unsigned cp = (codePage == MBCodePage::Ansi) ? CP_ACP : CP_UTF8;
@@ -261,18 +255,12 @@ static int WideToMB(char* buffer, size_t bufferSize, MBCodePage codePage, const 
 			}
 		} else
 		{
-			count = 0;
-			if (size < 120)
-			{
-				if (size > bufferSize)
-					return -1;
-				count = FastWideToMB(buffer, str, size);
-			}
+			bufferSize = (bufferSize < INT_MAX) ? bufferSize : INT_MAX;
+			count = (size < 120) ? FastWideToMB(buffer, str, (size < bufferSize) ? size : bufferSize) : 0;
 
 			if (count < size)
 			{
-				bufferSize = (bufferSize < INT_MAX) ? bufferSize : INT_MAX;
-				if (size > bufferSize)
+				if (count >= bufferSize)
 					return -1;
 
 				const unsigned cp = (codePage == MBCodePage::Ansi) ? CP_ACP : CP_UTF8;
