@@ -172,6 +172,7 @@
     <ClInclude Include="..\..\core\platform.h" />
     <ClInclude Include="..\..\core\randgen.h" />
     <ClInclude Include="..\..\core\strcommon.h" />
+    <ClInclude Include="..\..\core\strformat.h" />
     <ClInclude Include="..\..\core\strutil.h" />
     <ClInclude Include="..\..\core\thread.h" />
     <ClInclude Include="..\..\core\threadsync.h" />
@@ -191,6 +192,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\core\randgen.cpp" />
+    <ClCompile Include="..\..\core\strformat.cpp" />
     <ClCompile Include="..\..\core\strutil.cpp" />
     <ClCompile Include="..\..\core\thread.cpp" />
     <ClCompile Include="..\..\core\threadsync.cpp" />
