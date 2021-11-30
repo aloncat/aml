@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "platform.h"
 #include "strcommon.h"
 #include "util.h"
 
@@ -69,8 +70,57 @@ public:
 	// за реальным концом данных, файл будет дополнен "мусором" до необходимого размера
 	virtual bool Truncate() = 0;
 
+	// Вычисляет CRC32 файла. Значение возвращается в поле first пары. Параметр position задаёт начало блока данных;
+	// нулевое значение соответствует началу файла, значение -1 соответствует текущей позиции. Параметр size задаёт
+	// размер блока; если значение не задано (равно ~0), то концом блока считается конец файла. Функция изменяет
+	// текущую позицию файла. Если поле second возвращаемой пары равно false, значит произошла ошибка
+	std::pair<uint32_t, bool> GetCRC32(long long position = 0, size_t size = ~size_t(0));
+
+	// Сохраняет файл целиком в указанный файл file. Если параметр clearDest равен true, то всё содержимое файла
+	// назначения file удаляется; если равен false, то запись начинается с текущей позиции; если file длиннее, чем
+	// записываемые данные, то остальная часть файла не изменяется. Функция меняет текущую позицию обоих файлов
+	bool SaveTo(File& file, bool clearDest = false);
+	// Сохраняет файл целиком в другой файл по указанному пути path. Если такой файл существует,
+	// то его содержимое будет полностью заменено. Функция меняет текущую позицию этого файла
+	bool SaveTo(WZStringView path);
+
 protected:
+	virtual bool SaveToCustom(File& file);
+	virtual bool GetCRC32Custom(uint32_t& crc, long long size);
+
 	unsigned m_OpenFlags = 0;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   BinaryFile - файл файловой системы ОС
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+class BinaryFile : public File
+{
+public:
+	BinaryFile();
+	virtual ~BinaryFile() override;
+
+	virtual bool Open(WZStringView path, unsigned flags = FILE_OPEN_READ) override;
+	virtual void Close() override;
+
+	virtual bool IsOpened() const override;
+
+	virtual std::pair<size_t, bool> Read(void* buffer, size_t bytesToRead) override;
+	virtual bool Write(const void* buffer, size_t bytesToWrite) override;
+	virtual bool Flush() override;
+
+	virtual long long GetSize() const override;
+	virtual long long GetPosition() const override;
+	virtual bool SetPosition(long long position) override;
+	virtual bool Truncate() override;
+
+protected:
+	struct FileSystem;
+	void* m_FileHandle = nullptr;
 };
 
 } // namespace util

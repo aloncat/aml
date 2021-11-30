@@ -23,6 +23,9 @@ namespace util {
 	class EHalt;
 	class ELogic;
 	class ERuntime;
+	// Классы файлов
+	class BinaryFile;
+	class File;
 	// Разное
 	class FuncToggle;
 	struct DateTime;
