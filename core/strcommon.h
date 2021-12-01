@@ -39,6 +39,8 @@ using IsStringViewIsh = std::enable_if_t<std::conjunction_v<
 template<class CharT, class Traits = std::char_traits<CharT>>
 class BasicZStringView
 {
+	static_assert(std::is_same_v<CharT, typename Traits::char_type>, "Bad Traits::char_type");
+
 public:
 	using traits_type = Traits;
 	using const_pointer = const CharT*;
@@ -111,7 +113,7 @@ public:
 	}
 
 protected:
-	constexpr BasicZStringView(bool) noexcept {}
+	explicit constexpr BasicZStringView(bool) noexcept {}
 	constexpr BasicZStringView(const_pointer str, size_type size) noexcept
 		: m_Data(str)
 		, m_Size(size)
