@@ -74,6 +74,12 @@
     <ClInclude Include="..\..\core\filesystem.h">
       <Filter>file</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\console.h">
+      <Filter>util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\core\debug.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -117,6 +123,9 @@
     </ClCompile>
     <ClCompile Include="..\..\core\filesystem.cpp">
       <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\console.cpp">
+      <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

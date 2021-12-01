@@ -163,8 +163,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\core\array.h" />
+    <ClInclude Include="..\..\core\console.h" />
     <ClInclude Include="..\..\core\crc32.h" />
     <ClInclude Include="..\..\core\datetime.h" />
+    <ClInclude Include="..\..\core\debug.h" />
     <ClInclude Include="..\..\core\exception.h" />
     <ClInclude Include="..\..\core\fasthash.h" />
     <ClInclude Include="..\..\core\file.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="..\..\core\winapi.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\core\console.cpp" />
     <ClCompile Include="..\..\core\crc32.cpp" />
     <ClCompile Include="..\..\core\datetime.cpp" />
     <ClCompile Include="..\..\core\exception.cpp" />
