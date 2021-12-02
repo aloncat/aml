@@ -179,6 +179,7 @@ Console::Console()
 					mode &= ~ENABLE_PROCESSED_INPUT;
 					::SetConsoleMode(inHandle, mode);
 				}
+				InitKeyTTA();
 			}
 		}
 
@@ -325,6 +326,77 @@ void Console::SetTitle(WZStringView title)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
+void Console::InitKeyTTA()
+{
+	AML_FILLA(m_KeyTTA, 0, util::CountOf(m_KeyTTA));
+
+	for (int i = 0; i < 10; ++i)
+		m_KeyTTA['0' + i] = (KEY_0 + i) & 0xff;
+	for (int i = 0; i < 26; ++i)
+		m_KeyTTA['A' + i] = (KEY_A + i) & 0xff;
+	for (int i = 0; i < 12; ++i)
+		m_KeyTTA[VK_F1 + i] = (KEY_F1 + i) & 0xff;
+
+	m_KeyTTA[VK_MENU]		= KEY_ALT;
+	m_KeyTTA[VK_CONTROL]	= KEY_CTRL;
+	m_KeyTTA[VK_SHIFT]		= KEY_SHIFT;
+
+	m_KeyTTA[VK_NUMLOCK]	= KEY_NUM;
+	m_KeyTTA[VK_CAPITAL]	= KEY_CAPS;
+	m_KeyTTA[VK_SCROLL]		= KEY_SCROLL;
+
+	m_KeyTTA[VK_ESCAPE]		= KEY_ESC;
+	m_KeyTTA[VK_TAB]		= KEY_TAB;
+	m_KeyTTA[VK_SPACE]		= KEY_SPACE;
+	m_KeyTTA[VK_BACK]		= KEY_BACK;
+	m_KeyTTA[VK_RETURN]		= KEY_ENTER;
+
+	m_KeyTTA[VK_SNAPSHOT]	= KEY_PRINT;
+	m_KeyTTA[VK_PAUSE]		= KEY_PAUSE;
+
+	m_KeyTTA[VK_INSERT]		= KEY_INSERT;
+	m_KeyTTA[VK_DELETE]		= KEY_DELETE;
+	m_KeyTTA[VK_HOME]		= KEY_HOME;
+	m_KeyTTA[VK_END]		= KEY_END;
+	m_KeyTTA[VK_PRIOR]		= KEY_PAGEUP;
+	m_KeyTTA[VK_NEXT]		= KEY_PAGEDN;
+
+	m_KeyTTA[VK_LEFT]		= KEY_LEFT;
+	m_KeyTTA[VK_UP]			= KEY_UP;
+	m_KeyTTA[VK_RIGHT]		= KEY_RIGHT;
+	m_KeyTTA[VK_DOWN]		= KEY_DOWN;
+
+	m_KeyTTA[VK_OEM_3]		= KEY_BSPARK;
+	m_KeyTTA[VK_OEM_MINUS]	= KEY_MINUS;
+	m_KeyTTA[VK_OEM_PLUS]	= KEY_EQUAL;
+	m_KeyTTA[VK_OEM_5]		= KEY_BSLASH;
+	m_KeyTTA[VK_OEM_4]		= KEY_LBRKT;
+	m_KeyTTA[VK_OEM_6]		= KEY_RBRKT;
+	m_KeyTTA[VK_OEM_1]		= KEY_COLON;
+	m_KeyTTA[VK_OEM_7]		= KEY_QUOTE;
+	m_KeyTTA[VK_OEM_COMMA]	= KEY_COMMA;
+	m_KeyTTA[VK_OEM_PERIOD]	= KEY_PERIOD;
+	m_KeyTTA[VK_OEM_2]		= KEY_SLASH;
+
+	m_KeyTTA[VK_DIVIDE]		= KEY_PADDIV;
+	m_KeyTTA[VK_MULTIPLY]	= KEY_PADMUL;
+	m_KeyTTA[VK_SUBTRACT]	= KEY_PADSUB;
+	m_KeyTTA[VK_ADD]		= KEY_PADADD;
+	m_KeyTTA[VK_NUMPAD0]	= KEY_PAD0;
+	m_KeyTTA[VK_NUMPAD1]	= KEY_PAD1;
+	m_KeyTTA[VK_NUMPAD2]	= KEY_PAD2;
+	m_KeyTTA[VK_NUMPAD3]	= KEY_PAD3;
+	m_KeyTTA[VK_NUMPAD4]	= KEY_PAD4;
+	m_KeyTTA[VK_NUMPAD5]	= KEY_PAD5ON;
+	m_KeyTTA[VK_CLEAR]		= KEY_PAD5OFF;
+	m_KeyTTA[VK_NUMPAD6]	= KEY_PAD6;
+	m_KeyTTA[VK_NUMPAD7]	= KEY_PAD7;
+	m_KeyTTA[VK_NUMPAD8]	= KEY_PAD8;
+	m_KeyTTA[VK_NUMPAD9]	= KEY_PAD9;
+	m_KeyTTA[VK_DECIMAL]	= KEY_PADDEC;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
 void Console::SetColor(int color)
 {
 	color &= 0xff;
@@ -378,19 +450,17 @@ void Console::PollInput(bool forcePoll)
 					INPUT_RECORD& event = eventBuffer[i];
 					if (event.EventType == KEY_EVENT)
 					{
-						const WORD vkey = event.Event.KeyEvent.wVirtualKeyCode;
+						const WORD keyCode = event.Event.KeyEvent.wVirtualKeyCode;
 						const bool isKeyDown = event.Event.KeyEvent.bKeyDown == TRUE;
 						const DWORD ctrlState = event.Event.KeyEvent.dwControlKeyState;
 						const bool isCtrlDown = (ctrlState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
 
-						if (vkey == 'C' && isKeyDown && isCtrlDown)
+						const auto vkey = m_KeyTTA[keyCode & 0xff];
+						if (vkey == VirtualKey::KEY_C && isKeyDown && isCtrlDown)
 							m_IsCtrlCPressed = true;
 						// При заполнении буфера игнорируем новые события
-						else if (m_InputEvents.size() < MAX_KEY_EVENTS)
+						else if (vkey && m_InputEvents.size() < MAX_KEY_EVENTS)
 						{
-							// TODO: такая обработка событий ввода не совсем корректна, так как мы не учитываем значение
-							// повторов event.Event.KeyEvent.wRepeatCount. И ещё, было бы неплохо сделать свой enum с
-							// кодами, чтобы унифицировать их для разных платформ как в подсистеме ввода Sparky
 							m_InputEvents.push_back(KeyEvent { vkey, isKeyDown, isCtrlDown });
 						}
 					}

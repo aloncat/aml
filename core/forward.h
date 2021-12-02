@@ -27,6 +27,7 @@ namespace util {
 	class BinaryFile;
 	class File;
 	// Разное
+	class Console;
 	class FuncToggle;
 	struct DateTime;
 }

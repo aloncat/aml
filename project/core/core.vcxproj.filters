@@ -80,6 +80,9 @@
     <ClInclude Include="..\..\core\debug.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\vkey.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">

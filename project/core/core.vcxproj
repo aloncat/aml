@@ -182,6 +182,7 @@
     <ClInclude Include="..\..\core\threadsync.h" />
     <ClInclude Include="..\..\core\toggle.h" />
     <ClInclude Include="..\..\core\util.h" />
+    <ClInclude Include="..\..\core\vkey.h" />
     <ClInclude Include="..\..\core\winapi.h" />
   </ItemGroup>
   <ItemGroup>

@@ -8,6 +8,7 @@
 #include "strcommon.h"
 #include "threadsync.h"
 #include "util.h"
+#include "vkey.h"
 
 #include <deque>
 #include <string_view>
@@ -15,7 +16,7 @@
 namespace util {
 
 //--------------------------------------------------------------------------------------------------------------------------------
-class Console
+class Console : public VirtualKey
 {
 	AML_NONCOPYABLE(Console)
 
@@ -71,6 +72,7 @@ protected:
 	};
 
 	void InitMainCS();
+	void InitKeyTTA();
 
 	void SetColor(int color);
 
@@ -79,7 +81,8 @@ protected:
 
 protected:
 	ConsoleInfo m_Info;
-	std::deque<KeyEvent> m_InputEvents;
+	uint8_t m_KeyTTA[256];						// Таблица трансляции кодов виртуальных клавиш
+	std::deque<KeyEvent> m_InputEvents;			// Буфер событий ввода
 
 	int m_TextColor = -1;						// Текущий цвет текста
 	unsigned m_LastPollTime = 0;				// Время последней обработки событий ввода
