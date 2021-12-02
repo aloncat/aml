@@ -147,13 +147,10 @@ Console::Console()
 	static int initOnce = (InitMainCS(), 0);
 	thread::Lock lock(s_MainCS);
 
-	HANDLE outHandle = ::GetStdHandle(STD_OUTPUT_HANDLE);
-	if (!outHandle && ::AllocConsole())
-	{
+	if (::GetConsoleWindow() == nullptr && ::AllocConsole())
 		s_HasAllocatedConsole = true;
-		outHandle = ::GetStdHandle(STD_OUTPUT_HANDLE);
-	}
 
+	HANDLE outHandle = ::GetStdHandle(STD_OUTPUT_HANDLE);
 	if (outHandle && outHandle != INVALID_HANDLE_VALUE)
 	{
 		++s_RefCounter;
