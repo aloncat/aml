@@ -17,8 +17,10 @@
 
 #include <algorithm>
 #include <atomic>
+#include <deque>
 #include <exception>
 #include <functional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <type_traits>

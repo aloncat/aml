@@ -5,11 +5,12 @@
 #pragma once
 
 #include "platform.h"
+#include "strcommon.h"
 #include "threadsync.h"
 #include "util.h"
 
 #include <deque>
-#include <string>
+#include <string_view>
 
 namespace util {
 
@@ -25,61 +26,71 @@ public:
 		bool isCtrlDown;	// true, если левая или праавая клавиша CTRL нажата
 	};
 
-	// Создаёт объект. Для первого созданного объекта Console в консольном приложении ОС Windows
-	// происходит подключение к основному окну приложения (родительскому консольному окну). Если
-	// это GUI приложение или создаётся второй объект, то будет создано новое консольное окно
+	// Создаёт объект консоли. Если у приложения уже есть окно консоли, то объект подколючается
+	// к нему. Если окна консоли нет (например, для GUI приложения), то создаётся новое окно
 	Console();
 
-	// Отключает объект от основного окна консоли (уничтожает созданное окно)
+	// Отключает объект от окна консоли приложения. Если первым созданным объектом было создано
+	// новое окно консоли, то оно будет уничтожено деструтором последнего существующего объекта
 	~Console();
 
 	// Выводит в консоль текст строки заданным цветом
-	void Write(const char* str, int color = 7);
-	void Write(const wchar_t* str, int color = 7);
-	void Write(const std::string& str, int color = 7);
-	void Write(const std::wstring& str, int color = 7);
+	void Write(std::string_view str, int color = 7);
+	void Write(std::wstring_view str, int color = 7);
 
 	// Извлекает из очереди ввода следующее событие и помещает его в event. Если событие
 	// извлечено, то функция вернёт true. Если очередь событий пуста, то вернёт false
 	bool GetInputEvent(KeyEvent& event);
+	// Очищает буфер событий ввода
+	void ClearEvents();
 
 	// Возвращает true, если была нажата комбинация клавиш Ctrl-C или Ctrl-Break.
 	// Если параметр reset равен true, то это состояние будет сброшено
 	bool IsCtrlCPressed(bool reset = false);
 
 	// Задаёт текст для заголовка окна консоли
-	void SetTitle(const std::string& title);
-	void SetTitle(const std::wstring& title);
+	void SetTitle(ZStringView title);
+	void SetTitle(WZStringView title);
 
 protected:
-	static constexpr size_t MAX_KEY_EVENTS = 48;
+	static constexpr size_t MAX_KEY_EVENTS = 64;
 
 	struct CtrlHandler;
+
 	struct ConsoleInfo {
-		void* inHandle = nullptr;		// Хэндл устройства ввода
-		void* outHandle = nullptr;		// Хэндл устройства вывода
-		void* ctrlHandler = nullptr;	// Указатель на обработчик событий
-		int oldTextColor = 7;			// Цвет текста консоли при инициализации
-		bool isRedirected = false;		// true, если вывод перенаправлен
+		void* inHandle = nullptr;			// Хэндл устройства ввода
+		void* outHandle = nullptr;			// Хэндл устройства вывода
+		void* ctrlHandler = nullptr;		// Указатель на обработчик событий
+		int oldTextColor = 7;				// Цвет текста консоли при инициализации
+		bool isRedirected = false;			// true, если вывод перенаправлен
 	};
 
+	struct IOLocks {
+		thread::CriticalSection input;		// Критическая секция для обработки ввода
+		thread::CriticalSection output;		// Критическая секция для обработки вывода
+	};
+
+	void InitMainCS();
+
 	void SetColor(int color);
-	void Write(const char* str, size_t strLen, int color);
-	void Write(const wchar_t* str, size_t strLen, int color);
 
 	bool CheckPollTime();
-	void PollInput();
+	void PollInput(bool forcePoll);
 
 protected:
-	thread::CriticalSection m_InputCS;
-	thread::CriticalSection m_OutputCS;
 	ConsoleInfo m_Info;
-
 	std::deque<KeyEvent> m_InputEvents;
 
 	int m_TextColor = -1;						// Текущий цвет текста
 	unsigned m_LastPollTime = 0;				// Время последней обработки событий ввода
 	volatile bool m_IsCtrlCPressed = false;		// true, если были нажаты Ctrl-C или Ctrl-Break
+
+	static IOLocks* s_IOLocks;					// Критические секции (ввод и вывод)
+	static thread::CriticalSection* s_MainCS;	// Основная критическая секция
+
+	static unsigned s_RefCounter;				// Счётчик существующих объектов
+	static bool s_HasAllocatedConsole;			// true, если было создано окно консоли
+	static bool s_HasSetCtrlHandler;			// true, если обработчик Ctrl-C установлен
 };
 
 } // namespace util

@@ -6,14 +6,9 @@
 #include "console.h"
 
 #include "array.h"
-#include "debug.h"
 #include "winapi.h"
 
 using namespace util;
-
-// TODO: класс Console имеет глобальные недоработки: конструктор всегда подключается к стандартной
-// консоли (т.е. ведёт себя корректно только для случая единственного объекта Console в консольном
-// приложении). Для GUI приложения окно консоли сейчас вообще не создаётся
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -28,111 +23,78 @@ struct Console::CtrlHandler
 {
 	using HandlerFn = BOOL (WINAPI*)(DWORD);
 
-	// Резервирует обработчик событий консольного окна и возвращает указатель на него. Параметр breakFlag указывает
-	// на переменную типа bool, которую обработчик устанавит в true, если пользователь нажмёт Ctrl-C или Ctrl-Break
-	static HandlerFn GetHandler(volatile bool* breakFlag);
+	// Регистрирует флаг breakFlag в обработчике событий консольного окна и возвращает указатель на
+	// обработчик. Параметр breakFlag (если задан) должен указывать на переменную типа bool, которую
+	// обработчик установит в true, если пользователь нажмёт Ctrl-C или Ctrl-Break в окне консоли
+	static HandlerFn GetHandler(volatile bool* breakFlag = nullptr);
 
-	// Освобождает зарезервированный ранее обработчик для указанной переменной breakFlag
+	// Отменяет регистрацию указанного флага
 	static void ReleaseHandler(volatile bool* breakFlag);
 
 protected:
-	// Значение MAX_HANDLERS определяет, сколько из одновременно открытых окон будут устанавливать флаг нажатия
-	// Ctrl-C/Ctrl-Break. Окна, открытые сверх этого количества, не будут обрабатывать нажатия этих комбинаций
-	static constexpr size_t MAX_HANDLERS = 8;
+	static BOOL WINAPI Handler(DWORD ctrlType);
 
-	template<size_t idx> static BOOL WINAPI HandlerN(DWORD ctrlType)
-	{
-		return Handler(idx, ctrlType);
-	}
+	unsigned m_RefCounter = 0;			// Счетчик использования обработчика
+	thread::CriticalSection m_CS;		// Крит. секция для установки флагов
+	std::set<volatile bool*> m_Flags;	// Зарегистрированные флаги
 
-	static AML_NOINLINE BOOL Handler(size_t index, DWORD ctrlType);
-
-	static void Init();
-
-protected:
-	static inline volatile bool* s_Flags[MAX_HANDLERS];
-	static inline thread::CriticalSection* s_CS = nullptr;
+	static inline CtrlHandler* s_This;
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------
 Console::CtrlHandler::HandlerFn Console::CtrlHandler::GetHandler(volatile bool* breakFlag)
 {
-	static int initOnce = (Init(), 0);
-
-	if (!breakFlag || !s_CS)
-		return nullptr;
-
-	thread::Lock lock(s_CS);
-	for (size_t idx = 0; idx < MAX_HANDLERS; ++idx)
+	if (!s_This)
 	{
-		if (!s_Flags[idx])
-		{
-			s_Flags[idx] = breakFlag;
-
-			switch (idx)
-			{
-				case 0: return HandlerN<0>;
-				case 1: return HandlerN<1>;
-				case 2: return HandlerN<2>;
-				case 3: return HandlerN<3>;
-				case 4: return HandlerN<4>;
-				case 5: return HandlerN<5>;
-				case 6: return HandlerN<6>;
-				case 7: return HandlerN<7>;
-
-				default:
-					// NB: при изменении значения MAX_HANDLERS нужно
-					// также внести изменения в список вариантов выше
-					Assert(idx >= MAX_HANDLERS && "Incomplete switch statement");
-			}
-		}
+		// При первом вызове создаём объект. Многопоточная синхронизация не нужна,
+		// так как функция вызывается из критической секции конструктора Console
+		s_This = new CtrlHandler;
 	}
 
-	// Если свободных обработчиков нет, то вернём "общий"
-	// обработчик, который не устанавливает никакой флаг
-	return HandlerN<MAX_HANDLERS>;
+	if (breakFlag)
+	{
+		thread::Lock lock(s_This->m_CS);
+		s_This->m_Flags.insert(breakFlag);
+	}
+
+	++s_This->m_RefCounter;
+	return Handler;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void Console::CtrlHandler::ReleaseHandler(volatile bool* breakFlag)
 {
-	if (breakFlag && s_CS)
+	if (s_This)
 	{
-		thread::Lock lock(s_CS);
-		for (size_t idx = 0; idx < MAX_HANDLERS; ++idx)
+		if (breakFlag)
 		{
-			if (s_Flags[idx] == breakFlag)
-				s_Flags[idx] = nullptr;
+			auto& flags = s_This->m_Flags;
+			thread::Lock lock(s_This->m_CS);
+			if (auto it = flags.find(breakFlag); it != flags.end())
+				flags.erase(it);
 		}
+
+		// Если счётчик достиг 0, то уничтожаем объект. Многопоточная синхронизация не
+		// нужна, так как функция вызывается из критической секции деструктора Console
+		if (!(--s_This->m_RefCounter))
+			AML_SAFE_DELETE(s_This);
 	}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE BOOL Console::CtrlHandler::Handler(size_t index, DWORD ctrlType)
+AML_NOINLINE BOOL Console::CtrlHandler::Handler(DWORD ctrlType)
 {
 	if (ctrlType == CTRL_C_EVENT || ctrlType == CTRL_BREAK_EVENT)
 	{
-		if (index < MAX_HANDLERS && s_CS)
+		if (s_This)
 		{
-			thread::Lock lock(s_CS);
-			if (volatile bool* breakFlag = s_Flags[index])
+			thread::Lock lock(s_This->m_CS);
+			for (auto breakFlag : s_This->m_Flags)
 				*breakFlag = true;
 		}
 		return TRUE;
 	}
 	return FALSE;
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-void Console::CtrlHandler::Init()
-{
-	static uint8_t data[sizeof(thread::CriticalSection)];
-	s_CS = new(data) thread::CriticalSection;
-
-	atexit([]() {
-		s_CS->~CriticalSection();
-		s_CS = nullptr;
-	});
 }
 
 #endif // AML_OS_WINDOWS
@@ -143,40 +105,30 @@ void Console::CtrlHandler::Init()
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void Console::Write(const char* str, int color)
-{
-	Write(str, str ? strlen(str) : 0, color);
-}
+Console::IOLocks* Console::s_IOLocks;
+thread::CriticalSection* Console::s_MainCS;
 
-//--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void Console::Write(const wchar_t* str, int color)
-{
-	Write(str, str ? wcslen(str) : 0, color);
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void Console::Write(const std::string& str, int color)
-{
-	Write(str.c_str(), str.size(), color);
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void Console::Write(const std::wstring& str, int color)
-{
-	Write(str.c_str(), str.size(), color);
-}
+unsigned Console::s_RefCounter;
+bool Console::s_HasAllocatedConsole;
+bool Console::s_HasSetCtrlHandler;
 
 //--------------------------------------------------------------------------------------------------------------------------------
 bool Console::IsCtrlCPressed(bool reset)
 {
-	PollInput();
+	PollInput(false);
 	if (m_IsCtrlCPressed)
 	{
 		m_IsCtrlCPressed = !reset;
 		return true;
 	}
 	return false;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Console::InitMainCS()
+{
+	static uint8_t data[sizeof(thread::CriticalSection)];
+	s_MainCS = new(data) thread::CriticalSection;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,9 +142,27 @@ bool Console::IsCtrlCPressed(bool reset)
 //--------------------------------------------------------------------------------------------------------------------------------
 Console::Console()
 {
+	// В самый первый раз инициализируем основную критическую
+	// секцию; эта крит. секция никогда не будет уничтожена
+	static int initOnce = (InitMainCS(), 0);
+	thread::Lock lock(s_MainCS);
+
 	HANDLE outHandle = ::GetStdHandle(STD_OUTPUT_HANDLE);
+	if (!outHandle && ::AllocConsole())
+	{
+		s_HasAllocatedConsole = true;
+		outHandle = ::GetStdHandle(STD_OUTPUT_HANDLE);
+	}
+
 	if (outHandle && outHandle != INVALID_HANDLE_VALUE)
 	{
+		++s_RefCounter;
+
+		if (!s_IOLocks)
+		{
+			s_IOLocks = new IOLocks;
+		}
+
 		DWORD mode;
 		m_Info.outHandle = outHandle;
 		m_Info.isRedirected = ::GetConsoleMode(outHandle, &mode) == 0;
@@ -213,12 +183,16 @@ Console::Console()
 					::SetConsoleMode(inHandle, mode);
 				}
 			}
+		}
 
-			if (auto handler = CtrlHandler::GetHandler(&m_IsCtrlCPressed))
-			{
-				m_Info.ctrlHandler = handler;
-				::SetConsoleCtrlHandler(handler, TRUE);
-			}
+		volatile bool* breakFlag = m_Info.isRedirected ? nullptr : &m_IsCtrlCPressed;
+		auto handler = CtrlHandler::GetHandler(breakFlag);
+		m_Info.ctrlHandler = handler;
+
+		if (!m_Info.isRedirected && !s_HasSetCtrlHandler)
+		{
+			::SetConsoleCtrlHandler(handler, TRUE);
+			s_HasSetCtrlHandler = true;
 		}
 	}
 }
@@ -226,24 +200,101 @@ Console::Console()
 //--------------------------------------------------------------------------------------------------------------------------------
 Console::~Console()
 {
-	if (m_Info.outHandle && !m_Info.isRedirected)
+	thread::Lock lock(s_MainCS);
+
+	if (m_Info.outHandle)
 	{
-		if (auto handler = static_cast<CtrlHandler::HandlerFn>(m_Info.ctrlHandler))
+		if (!m_Info.isRedirected)
 		{
-			::SetConsoleCtrlHandler(handler, FALSE);
-			CtrlHandler::ReleaseHandler(&m_IsCtrlCPressed);
+			WORD attr = static_cast<WORD>(m_Info.oldTextColor);
+			::SetConsoleTextAttribute(m_Info.outHandle, attr);
 		}
 
-		WORD attr = static_cast<WORD>(m_Info.oldTextColor);
-		::SetConsoleTextAttribute(m_Info.outHandle, attr);
+		if (!(--s_RefCounter))
+		{
+			if (s_HasSetCtrlHandler)
+			{
+				auto handler = static_cast<CtrlHandler::HandlerFn>(m_Info.ctrlHandler);
+				::SetConsoleCtrlHandler(handler, FALSE);
+				s_HasSetCtrlHandler = false;
+			}
+
+			AML_SAFE_DELETE(s_IOLocks);
+		}
+
+		// NB: освобождаем обработчик в последнюю очередь. Это имеет значение, когда счётчик стал равен 0, и вызов
+		// должен разрушить его объект. Мы должны делать это только после отключения обработчика от окна консоли
+		CtrlHandler::ReleaseHandler(&m_IsCtrlCPressed);
+	}
+
+	if (!s_RefCounter && s_HasAllocatedConsole)
+	{
+		::FreeConsole();
+		s_HasAllocatedConsole = false;
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Console::Write(std::string_view str, int color)
+{
+	const size_t strLen = str.size();
+	if (!m_Info.outHandle || !strLen || strLen > INT_MAX)
+		return;
+
+	thread::Lock lock(s_IOLocks->output);
+
+	if (m_Info.isRedirected)
+	{
+		DWORD count = static_cast<DWORD>(strLen);
+		::WriteFile(m_Info.outHandle, str.data(), count, &count, nullptr);
+	} else
+	{
+		SetColor(color);
+
+		util::SmartArray<char> buffer(strLen);
+		DWORD count = static_cast<DWORD>(strLen);
+		::CharToOemBuffA(str.data(), buffer, count);
+
+		::WriteConsoleA(m_Info.outHandle, buffer, count, &count, nullptr);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Console::Write(std::wstring_view str, int color)
+{
+	const size_t strLen = str.size();
+	if (!m_Info.outHandle || !strLen || strLen > INT_MAX)
+		return;
+
+	thread::Lock lock(s_IOLocks->output);
+
+	if (m_Info.isRedirected)
+	{
+		int len = static_cast<int>(strLen);
+		if (int expectedSize = ::WideCharToMultiByte(CP_ACP, 0, str.data(), len, nullptr, 0, nullptr, nullptr); expectedSize > 0)
+		{
+			util::SmartArray<char> buffer(expectedSize);
+			if (len = ::WideCharToMultiByte(CP_ACP, 0, str.data(), len, buffer, expectedSize, nullptr, nullptr); len > 0)
+			{
+				DWORD bytesWritten;
+				::WriteFile(m_Info.outHandle, buffer, len, &bytesWritten, nullptr);
+			}
+		}
+	} else
+	{
+		SetColor(color);
+
+		DWORD count = static_cast<DWORD>(strLen);
+		::WriteConsoleW(m_Info.outHandle, str.data(), count, &count, nullptr);
 	}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 bool Console::GetInputEvent(KeyEvent& event)
 {
-	thread::Lock lock(m_InputCS);
+	thread::Lock lock(s_IOLocks->input);
 
+	PollInput(false);
 	if (!m_InputEvents.empty())
 	{
 		event = m_InputEvents.front();
@@ -254,14 +305,23 @@ bool Console::GetInputEvent(KeyEvent& event)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void Console::SetTitle(const std::string& title)
+void Console::ClearEvents()
+{
+	thread::Lock lock(s_IOLocks->input);
+
+	PollInput(true);
+	m_InputEvents.clear();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Console::SetTitle(ZStringView title)
 {
 	if (m_Info.outHandle && !m_Info.isRedirected)
 		::SetConsoleTitleA(title.c_str());
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void Console::SetTitle(const std::wstring& title)
+void Console::SetTitle(WZStringView title)
 {
 	if (m_Info.outHandle && !m_Info.isRedirected)
 		::SetConsoleTitleW(title.c_str());
@@ -280,57 +340,6 @@ void Console::SetColor(int color)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void Console::Write(const char* str, size_t strLen, int color)
-{
-	if (!m_Info.outHandle || !str || !strLen || strLen > INT_MAX)
-		return;
-
-	thread::Lock lock(m_OutputCS);
-
-	if (m_Info.isRedirected)
-	{
-		DWORD count = static_cast<DWORD>(strLen);
-		::WriteFile(m_Info.outHandle, str, count, &count, nullptr);
-	} else
-	{
-		util::SmartArray<char> buffer(strLen + 1);
-		::CharToOemA(str, buffer);
-
-		SetColor(color);
-		DWORD count = static_cast<DWORD>(strLen);
-		::WriteConsoleA(m_Info.outHandle, buffer, count, &count, nullptr);
-	}
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-void Console::Write(const wchar_t* str, size_t strLen, int color)
-{
-	if (!m_Info.outHandle || !str || !strLen || strLen > INT_MAX)
-		return;
-
-	thread::Lock lock(m_OutputCS);
-
-	if (m_Info.isRedirected)
-	{
-		int len = static_cast<int>(strLen);
-		if (int expectedSize = ::WideCharToMultiByte(CP_ACP, 0, str, len, nullptr, 0, nullptr, nullptr); expectedSize > 0)
-		{
-			util::SmartArray<char> buffer(expectedSize);
-			if (len = ::WideCharToMultiByte(CP_ACP, 0, str, len, buffer, expectedSize, nullptr, nullptr); len > 0)
-			{
-				DWORD bytesWritten;
-				::WriteFile(m_Info.outHandle, buffer, len, &bytesWritten, nullptr);
-			}
-		}
-	} else
-	{
-		SetColor(color);
-		DWORD count = static_cast<DWORD>(strLen);
-		::WriteConsoleW(m_Info.outHandle, str, count, &count, nullptr);
-	}
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
 bool Console::CheckPollTime()
 {
 	const DWORD timeStamp = ::GetTickCount();
@@ -342,48 +351,51 @@ bool Console::CheckPollTime()
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void Console::PollInput()
+void Console::PollInput(bool forcePoll)
 {
 	if (!m_Info.inHandle)
 		return;
 
-	thread::Lock lock(m_InputCS);
+	thread::Lock lock(s_IOLocks->input);
 
-	DWORD totalEventC = 0;
-	if (CheckPollTime() && ::GetNumberOfConsoleInputEvents(m_Info.inHandle, &totalEventC) && totalEventC)
+	if (CheckPollTime() || forcePoll)
 	{
-		const DWORD MAX_EVENT_C = 24;
-		INPUT_RECORD eventBuffer[MAX_EVENT_C];
-
-		while (totalEventC)
+		DWORD totalEventC = 0;
+		if (::GetNumberOfConsoleInputEvents(m_Info.inHandle, &totalEventC) && totalEventC)
 		{
-			DWORD eventC = 0;
-			if (::ReadConsoleInputA(m_Info.inHandle, eventBuffer, MAX_EVENT_C, &eventC) == 0 || !eventC)
-				break;
+			const DWORD MAX_EVENT_C = 24;
+			INPUT_RECORD eventBuffer[MAX_EVENT_C];
 
-			// NB: иногда мы можем прочитать больше событий, чем ожидали. Так происходит, когда между
-			// получением количества событий и их чтением в буфер успевает поступить новое событие
-			totalEventC -= (eventC < totalEventC) ? eventC : totalEventC;
-
-			for (unsigned i = 0; i < eventC; ++i)
+			while (totalEventC)
 			{
-				INPUT_RECORD& event = eventBuffer[i];
-				if (event.EventType == KEY_EVENT)
-				{
-					const WORD vkey = event.Event.KeyEvent.wVirtualKeyCode;
-					const bool isKeyDown = event.Event.KeyEvent.bKeyDown == TRUE;
-					const DWORD ctrlState = event.Event.KeyEvent.dwControlKeyState;
-					const bool isCtrlDown = (ctrlState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+				DWORD eventC = 0;
+				if (::ReadConsoleInputA(m_Info.inHandle, eventBuffer, MAX_EVENT_C, &eventC) == 0 || !eventC)
+					break;
 
-					if (vkey == 'C' && isKeyDown && isCtrlDown)
-						m_IsCtrlCPressed = true;
-					// При заполнении буфера игнорируем новые события
-					else if (m_InputEvents.size() < MAX_KEY_EVENTS)
+				// NB: иногда мы можем прочитать больше событий, чем ожидали. Так происходит, когда между
+				// получением количества событий и их чтением в буфер успевает поступить новое событие
+				totalEventC -= (eventC < totalEventC) ? eventC : totalEventC;
+
+				for (unsigned i = 0; i < eventC; ++i)
+				{
+					INPUT_RECORD& event = eventBuffer[i];
+					if (event.EventType == KEY_EVENT)
 					{
-						// TODO: такая обработка событий ввода не совсем корректна, так как мы не учитываем значение
-						// повторов event.Event.KeyEvent.wRepeatCount. И ещё, было бы неплохо сделать свой enum с
-						// кодами, чтобы унифицировать их для разных платформ как в подсистеме ввода Sparky
-						m_InputEvents.push_back(KeyEvent { vkey, isKeyDown, isCtrlDown });
+						const WORD vkey = event.Event.KeyEvent.wVirtualKeyCode;
+						const bool isKeyDown = event.Event.KeyEvent.bKeyDown == TRUE;
+						const DWORD ctrlState = event.Event.KeyEvent.dwControlKeyState;
+						const bool isCtrlDown = (ctrlState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED)) != 0;
+
+						if (vkey == 'C' && isKeyDown && isCtrlDown)
+							m_IsCtrlCPressed = true;
+						// При заполнении буфера игнорируем новые события
+						else if (m_InputEvents.size() < MAX_KEY_EVENTS)
+						{
+							// TODO: такая обработка событий ввода не совсем корректна, так как мы не учитываем значение
+							// повторов event.Event.KeyEvent.wRepeatCount. И ещё, было бы неплохо сделать свой enum с
+							// кодами, чтобы унифицировать их для разных платформ как в подсистеме ввода Sparky
+							m_InputEvents.push_back(KeyEvent { vkey, isKeyDown, isCtrlDown });
+						}
 					}
 				}
 			}
