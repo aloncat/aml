@@ -500,12 +500,12 @@ void Console::PollInput(bool forcePoll)
 #if !AML_OS_WINDOWS
 Console::Console() {}
 Console::~Console() {}
+void Console::Write(std::string_view str, int color) {}
+void Console::Write(std::wstring_view str, int color) {}
+void Console::ShowCursor(bool visible) {}
 bool Console::GetInputEvent(KeyEvent& event) { return false; }
-void Console::SetTitle(const std::string& title) {}
-void Console::SetTitle(const std::wstring& title) {}
-void Console::SetColor(int color) {}
-void Console::Write(const char* str, size_t strLen, int color) {}
-void Console::Write(const wchar_t* str, size_t strLen, int color) {}
-bool Console::CheckPollTime() { return false; }
+void Console::ClearEvents() {}
+void Console::SetTitle(ZStringView title) {}
+void Console::SetTitle(WZStringView title) {}
 void Console::PollInput() {}
 #endif
