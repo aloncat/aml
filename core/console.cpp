@@ -166,9 +166,13 @@ Console::Console()
 
 		if (!m_Info.isRedirected)
 		{
-			CONSOLE_SCREEN_BUFFER_INFO info;
-			if (::GetConsoleScreenBufferInfo(m_Info.outHandle, &info))
-				m_Info.oldTextColor = info.wAttributes & 0xff;
+			CONSOLE_SCREEN_BUFFER_INFO bufferInfo;
+			if (::GetConsoleScreenBufferInfo(m_Info.outHandle, &bufferInfo))
+				m_Info.oldTextColor = bufferInfo.wAttributes & 0xff;
+
+			CONSOLE_CURSOR_INFO cursorInfo;
+			if (::GetConsoleCursorInfo(m_Info.outHandle, &cursorInfo))
+				m_Info.isCursorVisible = cursorInfo.bVisible != 0;
 
 			HANDLE inHandle = ::GetStdHandle(STD_INPUT_HANDLE);
 			if (inHandle && inHandle != INVALID_HANDLE_VALUE)
@@ -206,6 +210,7 @@ Console::~Console()
 		{
 			WORD attr = static_cast<WORD>(m_Info.oldTextColor);
 			::SetConsoleTextAttribute(m_Info.outHandle, attr);
+			ShowCursor(m_Info.isCursorVisible);
 		}
 
 		if (!(--s_RefCounter))
@@ -284,6 +289,20 @@ void Console::Write(std::wstring_view str, int color)
 
 		DWORD count = static_cast<DWORD>(strLen);
 		::WriteConsoleW(m_Info.outHandle, str.data(), count, &count, nullptr);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Console::ShowCursor(bool visible)
+{
+	if (m_Info.outHandle)
+	{
+		CONSOLE_CURSOR_INFO cursorInfo;
+		if (::GetConsoleCursorInfo(m_Info.outHandle, &cursorInfo) && visible != (cursorInfo.bVisible != 0))
+		{
+			cursorInfo.bVisible = visible ? TRUE : FALSE;
+			::SetConsoleCursorInfo(m_Info.outHandle, &cursorInfo);
+		}
 	}
 }
 

@@ -39,6 +39,9 @@ public:
 	void Write(std::string_view str, int color = 7);
 	void Write(std::wstring_view str, int color = 7);
 
+	// Включает или выключает отображение курсора
+	void ShowCursor(bool visible);
+
 	// Извлекает из очереди ввода следующее событие и помещает его в event. Если событие
 	// извлечено, то функция вернёт true. Если очередь событий пуста, то вернёт false
 	bool GetInputEvent(KeyEvent& event);
@@ -64,6 +67,7 @@ protected:
 		void* ctrlHandler = nullptr;		// Указатель на обработчик событий
 		int oldTextColor = 7;				// Цвет текста консоли при инициализации
 		bool isRedirected = false;			// true, если вывод перенаправлен
+		bool isCursorVisible = true;		// true, если курсор был видим при инициализации
 	};
 
 	struct IOLocks {
