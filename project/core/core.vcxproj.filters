@@ -83,6 +83,9 @@
     <ClInclude Include="..\..\core\vkey.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\singleton.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -128,6 +131,9 @@
       <Filter>file</Filter>
     </ClCompile>
     <ClCompile Include="..\..\core\console.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\singleton.cpp">
       <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>

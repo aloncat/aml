@@ -5,6 +5,7 @@
 #pragma once
 
 #include "platform.h"
+#include "singleton.h"
 #include "strcommon.h"
 #include "threadsync.h"
 #include "util.h"
@@ -32,7 +33,7 @@ public:
 	Console();
 
 	// Отключает объект от окна консоли приложения. Если первым созданным объектом было создано
-	// новое окно консоли, то оно будет уничтожено деструтором последнего существующего объекта
+	// новое окно консоли, то оно будет уничтожено деструктором последнего существующего объекта
 	~Console();
 
 	// Выводит в консоль текст строки заданным цветом
@@ -98,6 +99,14 @@ protected:
 	static unsigned s_RefCounter;				// Счётчик существующих объектов
 	static bool s_HasAllocatedConsole;			// true, если было создано окно консоли
 	static bool s_HasSetCtrlHandler;			// true, если обработчик Ctrl-C установлен
+};
+
+//--------------------------------------------------------------------------------------------------------------------------------
+class SystemConsole : public Console, public Singleton<SystemConsole>
+{
+protected:
+	SystemConsole() = default;
+	virtual ~SystemConsole() override = default;
 };
 
 } // namespace util
