@@ -86,6 +86,9 @@
     <ClInclude Include="..\..\core\singleton.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\sysinfo.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -134,6 +137,9 @@
       <Filter>util</Filter>
     </ClCompile>
     <ClCompile Include="..\..\core\singleton.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\sysinfo.cpp">
       <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>
