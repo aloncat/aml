@@ -15,5 +15,6 @@ later (see the ./LICENCE file for the full licence).
 Directory structure:
 --------------------
   appcon	Console application sample
+  auxlib	Source code of auxiliary library
   core		Source code of AML project core
   project	VS 2017 project files

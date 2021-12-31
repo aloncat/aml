@@ -3,6 +3,7 @@
 if exist "%~dp0.vs" rd /s/q "%~dp0.vs"
 
 call :clean appcon
+call :clean auxlib
 call :clean core
 exit /b
 

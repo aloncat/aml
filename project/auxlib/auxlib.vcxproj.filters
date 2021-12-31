@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="platrform">
+      <UniqueIdentifier>{a10dc09c-d754-41da-81a8-01d4206af118}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="util">
+      <UniqueIdentifier>{da5e9ca9-6717-482e-9a98-ed7fc4c7c2d3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\auxlib\pch.h" />
+    <ClInclude Include="..\..\auxlib\print.h">
+      <Filter>util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\auxlib\prefix.cpp">
+      <Filter>platrform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auxlib\print.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
