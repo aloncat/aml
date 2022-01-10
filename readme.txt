@@ -4,7 +4,7 @@
 AML is an universal C++ library that is commonly
 used in my other projects as a core library.
 
-Copyright (C) 2016-2021 Dmitry Maslov.
+Copyright (C) 2016-2022 Dmitry Maslov.
 
 To get contact information, please visit:
   https://dmaslov.me/contacts.html

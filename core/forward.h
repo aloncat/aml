@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -26,6 +26,7 @@ namespace util {
 	// Классы файлов
 	class BinaryFile;
 	class File;
+	class MemoryFile;
 	// Разное
 	class Console;
 	class FuncToggle;

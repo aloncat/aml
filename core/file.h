@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -121,6 +121,69 @@ public:
 protected:
 	struct FileSystem;
 	void* m_FileHandle = nullptr;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   MemoryFile - файл в оперативной памяти
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+class MemoryFile : public File
+{
+public:
+	MemoryFile() = default;
+	virtual ~MemoryFile() override;
+
+	bool Open(unsigned flags = FILE_OPEN_MEMORY);
+	virtual void Close() override;
+
+	virtual std::pair<size_t, bool> Read(void* buffer, size_t bytesToRead) override;
+	virtual bool Write(const void* buffer, size_t bytesToWrite) override;
+
+	virtual long long GetSize() const override { return m_OpenFlags ? m_Size : -1ll; }
+	virtual long long GetPosition() const override { return m_OpenFlags ? m_Position : -1ll; }
+	virtual bool SetPosition(long long position) override;
+	virtual bool Truncate() override;
+
+	// Загружает содержимое указанного файла. Если параметр clear равен true, то содержимое этого файла удаляется (полностью
+	// заменяется содержимым указанного), а позиция устанавливается в начало. Если clear равен false, то данные загружаются
+	// с текущей позиции и сама позиция не изменяется. Вторая функция изменяет позицию загружаемого файла file
+	bool LoadFrom(WZStringView path, bool clear = true);
+	bool LoadFrom(File& file, bool clear = true);
+
+	MemoryFile& operator =(MemoryFile&& that);
+
+protected:
+	static constexpr unsigned FILE_OPEN_MEMORY = FILE_OPEN_READWRITE | FILE_CREATE_ALWAYS;
+	static constexpr size_t BLOCK_SIZE = 64 * 1024; // Размер блока (должен быть степенью 2)
+
+	struct Block;
+	struct BlockHeader {
+		Block* prev;
+		Block* next;
+	};
+	struct Block {
+		BlockHeader header;
+		uint8_t data[BLOCK_SIZE];
+	};
+
+	virtual bool SaveToCustom(File& file) override;
+	virtual bool GetCRC32Custom(uint32_t& crc, long long size) override;
+
+	void Grow();
+	void ApplyPosition();
+	void DoRead(void* buffer, size_t bytesToRead);
+	void DoWrite(const void* buffer, size_t bytesToWrite);
+
+protected:
+	Block* m_First = nullptr;	// Первый блок списка
+	Block* m_Block = nullptr;	// Текущий блок (соответствующий текущей позиции)
+	size_t m_BlockPos = 0;		// Текущая позиция в текущем блоке
+
+	size_t m_Size = 0;			// Размер файла в байтах
+	size_t m_Position = 0;		// Текущая позиция файла
 };
 
 } // namespace util

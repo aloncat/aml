@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -339,3 +339,347 @@ bool BinaryFile::Truncate()
 #else
 	#error Not implemented
 #endif // AML_OS_WINDOWS
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   MemoryFile
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+MemoryFile::~MemoryFile()
+{
+	Close();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::Open(unsigned flags)
+{
+	if (m_OpenFlags)
+		return false;
+
+	m_Block = m_First = new Block;
+	m_First->header.prev = nullptr;
+	m_First->header.next = nullptr;
+
+	m_BlockPos = 0;
+	m_Size = m_Position = 0;
+
+	m_OpenFlags = (flags | FILE_OPEN_MEMORY) & FILE_OPENFLAG_MASK;
+
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void MemoryFile::Close()
+{
+	for (Block* block = m_First; block;)
+	{
+		Block* p = block;
+		block = block->header.next;
+		delete p;
+	}
+	m_Block = m_First = nullptr;
+	m_OpenFlags = 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::pair<size_t, bool> MemoryFile::Read(void* buffer, size_t bytesToRead)
+{
+	std::pair<size_t, bool> result(0, false);
+
+	if (m_OpenFlags && buffer)
+	{
+		if (size_t bytesLeft = (m_Position < m_Size) ? m_Size - m_Position : 0; bytesToRead > bytesLeft)
+			bytesToRead = bytesLeft;
+
+		if (bytesToRead > BLOCK_SIZE - m_BlockPos)
+			DoRead(buffer, bytesToRead);
+		else
+		{
+			auto data = m_Block->data + m_BlockPos;
+			memcpy(buffer, data, bytesToRead);
+
+			m_BlockPos += bytesToRead;
+			m_Position += bytesToRead;
+		}
+
+		result.first = bytesToRead;
+		result.second = true;
+	}
+
+	return result;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::Write(const void* buffer, size_t bytesToWrite)
+{
+	if (!m_OpenFlags || !buffer)
+		return false;
+
+	if (bytesToWrite > BLOCK_SIZE - m_BlockPos)
+		DoWrite(buffer, bytesToWrite);
+	else
+	{
+		auto out = m_Block->data + m_BlockPos;
+		memcpy(out, buffer, bytesToWrite);
+
+		m_BlockPos += bytesToWrite;
+		m_Position += bytesToWrite;
+		if (m_Position > m_Size)
+			m_Size = m_Position;
+	}
+
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::SetPosition(long long position)
+{
+	if (!m_OpenFlags || position < 0 || position > ~size_t(0))
+		return false;
+
+	const size_t newPos = static_cast<size_t>(position);
+	if (newPos <= (m_Size | ((m_Size & (BLOCK_SIZE - 1)) ? BLOCK_SIZE - 1 : 0)))
+	{
+		size_t p = m_Position - m_BlockPos;
+		if (!m_Block || newPos <= p / 2)
+		{
+			m_Block = m_First;
+			p = 0;
+		}
+		if (newPos > p)
+		{
+			p += BLOCK_SIZE - 1;
+			for (; newPos - 1 > p; p += BLOCK_SIZE)
+				m_Block = m_Block->header.next;
+			p -= BLOCK_SIZE - 1;
+		} else
+		{
+			for (; newPos < p; p -= BLOCK_SIZE)
+				m_Block = m_Block->header.prev;
+		}
+		m_BlockPos = newPos - p;
+	} else
+	{
+		m_Block = nullptr;
+		m_BlockPos = BLOCK_SIZE;
+	}
+
+	m_Position = newPos;
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::Truncate()
+{
+	if (!m_OpenFlags)
+		return false;
+
+	if (!m_Block)
+		ApplyPosition();
+
+	for (Block* block = m_Block->header.next; block;)
+	{
+		Block* p = block;
+		block = block->header.next;
+		delete p;
+	}
+	m_Block->header.next = nullptr;
+	m_Size = m_Position;
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::LoadFrom(WZStringView path, bool clear)
+{
+	BinaryFile src;
+	bool result = false;
+	if (src.Open(path, FILE_OPEN_READ))
+	{
+		result = LoadFrom(src, clear);
+		src.Close();
+	}
+	return result;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::LoadFrom(File& file, bool clear)
+{
+	if (!file.IsOpened() || !(file.GetOpenFlags() & FILE_OPEN_READ))
+		return false;
+
+	if (!m_OpenFlags)
+		Open();
+
+	const size_t originalPos = m_Position;
+	bool result = file.SaveTo(*this, clear);
+	SetPosition(clear ? 0 : originalPos);
+	return result;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+MemoryFile& MemoryFile::operator =(MemoryFile&& that)
+{
+	if (this != &that)
+	{
+		Close();
+
+		m_First = that.m_First;
+		m_Block = that.m_Block;
+		m_BlockPos = that.m_BlockPos;
+
+		m_Size = that.m_Size;
+		m_Position = that.m_Position;
+		m_OpenFlags = that.m_OpenFlags;
+
+		that.m_Block = that.m_First = nullptr;
+		that.m_OpenFlags = 0;
+	}
+
+	return *this;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::SaveToCustom(File& file)
+{
+	size_t bytesLeft = m_Size;
+	for (Block* block = m_First; bytesLeft; block = block->header.next)
+	{
+		const size_t toCopy = (bytesLeft < BLOCK_SIZE) ? bytesLeft : BLOCK_SIZE;
+		if (!file.Write(block->data, toCopy))
+			return false;
+
+		bytesLeft -= toCopy;
+	}
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool MemoryFile::GetCRC32Custom(uint32_t& crc, long long size)
+{
+	if (size <= 0)
+		return true;
+	if (m_Position >= m_Size || static_cast<unsigned long long>(size) > m_Size - m_Position)
+		return false;
+
+	if (m_BlockPos == BLOCK_SIZE)
+	{
+		m_Block = m_Block->header.next;
+		m_BlockPos = 0;
+	}
+
+	for (size_t bytesToRead = static_cast<size_t>(size);;)
+	{
+		const size_t bytesLeft = BLOCK_SIZE - m_BlockPos;
+		const size_t toRead = (bytesToRead <= bytesLeft) ? bytesToRead : bytesLeft;
+		crc = hash::GetCRC32(m_Block->data + m_BlockPos, toRead, crc);
+
+		m_BlockPos += toRead;
+		m_Position += toRead;
+
+		bytesToRead -= toRead;
+		if (!bytesToRead)
+			return true;
+
+		m_Block = m_Block->header.next;
+		m_BlockPos = 0;
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline void MemoryFile::Grow()
+{
+	if (m_Block->header.next)
+		m_Block = m_Block->header.next;
+	else
+	{
+		Block* newBlock = new Block;
+		newBlock->header.prev = m_Block;
+		newBlock->header.next = nullptr;
+		m_Block->header.next = newBlock;
+		m_Block = newBlock;
+	}
+	m_BlockPos = 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+AML_NOINLINE void MemoryFile::ApplyPosition()
+{
+	const size_t newPosition = m_Position;
+
+	m_Block = m_First;
+	m_BlockPos = BLOCK_SIZE;
+	m_Position = BLOCK_SIZE;
+
+	while (newPosition > m_Position)
+	{
+		Grow();
+		// Изменим значения m_BlockPos, позиции и размера файла, чтобы наш объект файла был консистентным
+		// в случае генерации исключения при нехватке памяти при вызове Grow() в следующей итерации цикла
+		m_BlockPos = BLOCK_SIZE;
+		m_Position += BLOCK_SIZE;
+		if (m_Position > m_Size)
+			m_Size = m_Position;
+	}
+	m_BlockPos = newPosition - (m_Position - BLOCK_SIZE);
+	// Установим размер файла равным новой текущей позиции. Далее мы либо допишем что-то в наш файл и
+	// обновим тем самым размер, либо (если это вызов из функции Truncate) это и будет новый размер
+	m_Size = m_Position = newPosition;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+AML_NOINLINE void MemoryFile::DoRead(void* buffer, size_t bytesToRead)
+{
+	if (m_BlockPos == BLOCK_SIZE)
+	{
+		m_Block = m_Block->header.next;
+		m_BlockPos = 0;
+	}
+
+	for (auto out = static_cast<uint8_t*>(buffer);;)
+	{
+		const size_t bytesLeft = BLOCK_SIZE - m_BlockPos;
+		const size_t toRead = (bytesToRead <= bytesLeft) ? bytesToRead : bytesLeft;
+		memcpy(out, m_Block->data + m_BlockPos, toRead);
+
+		m_BlockPos += toRead;
+		m_Position += toRead;
+
+		bytesToRead -= toRead;
+		if (!bytesToRead)
+			return;
+
+		out += toRead;
+		m_Block = m_Block->header.next;
+		m_BlockPos = 0;
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+AML_NOINLINE void MemoryFile::DoWrite(const void* buffer, size_t bytesToWrite)
+{
+	if (!m_Block)
+		ApplyPosition();
+	if (m_BlockPos == BLOCK_SIZE)
+		Grow();
+
+	for (auto data = static_cast<const uint8_t*>(buffer);;)
+	{
+		const size_t bytesLeft = BLOCK_SIZE - m_BlockPos;
+		const size_t toWrite = (bytesToWrite <= bytesLeft) ? bytesToWrite : bytesLeft;
+		memcpy(m_Block->data + m_BlockPos, data, toWrite);
+
+		m_BlockPos += toWrite;
+		m_Position += toWrite;
+		if (m_Position > m_Size)
+			m_Size = m_Position;
+
+		bytesToWrite -= toWrite;
+		if (!bytesToWrite)
+			return;
+
+		data += toWrite;
+		Grow();
+	}
+}
