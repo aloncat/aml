@@ -6,6 +6,7 @@
 
 #include "platform.h"
 #include "singleton.h"
+#include "threadsync.h"
 #include "util.h"
 
 #include <string_view>
@@ -157,6 +158,7 @@ protected:
 	DebugHelper();
 	virtual ~DebugHelper() override;
 
+	thread::CriticalSection m_CS;
 	AssertHandler* m_AssertHandler = nullptr;
 	AbortHandler m_AbortHandler = nullptr;
 	bool m_IsDebugOutputEnabled = false;
