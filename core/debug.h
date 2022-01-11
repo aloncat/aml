@@ -80,18 +80,63 @@ class AssertHandler
 	AML_NONCOPYABLE(AssertHandler)
 
 public:
-	// TODO
+	enum class Reason {
+		AssertFailed,	// Источник ошибки: выражение в Assert
+		HaltInvoked		// Источник ошибки: макрос Halt
+	};
+
+	enum class Result {
+		Skip,			// Пропустить этот Assert и продолжить работу
+		SkipAll,		// Пропустить этот Assert, продолжить работу и далее пропускать его автоматически
+		Terminate		// Аварийно завершить работу программы
+	};
+
+	AssertHandler() = default;
+	virtual ~AssertHandler() = default;
+
+	// Эта функция вызывается в результате проверки условия в макросах Assert и Verify
+	// (Reason::AssertFailed). Также она вызывается макросом Halt (Reason::HaltInvoked)
+	virtual Result OnError(Reason reason, std::wstring_view filePath, int line, std::wstring_view text);
+
+protected:
+	static std::wstring FormatMsg(Reason reason, bool forMsgBox, std::wstring_view filePath, int line, std::wstring_view text);
+	static void LogError(std::wstring_view msg);
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   DebugHelper
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------------------------------------
 class DebugHelper : public Singleton<DebugHelper>
 {
 public:
-	// TODO
+	// Прототип пользовательской функции аварийного завершения работы. Параметр exitCode
+	// содержит значение кода ошибки, который необходимо передать операционной системе
+	using AbortHandler = void (*)(int exitCode);
+
+	// Устанавливает новый обработчик аварийного завершения
+	void SetAbortHandler(AbortHandler handler);
+
+	// Устанавливает новый обработчик handler вместо текущего. После вызова этой функции владельцем обработчика станет
+	// синглтон DebugHelper. Если значение handler равно nullptr, то текущий обработчик будет уничтожен, а макросы
+	// Assert/Verify/Halt перестанут обрабатываться. По умолчанию установлен стандартный обработчик AssertHandler
+	void SetAssertHandler(AssertHandler* handler);
 
 	// Возвращает true, если приложение работает под отладчиком. Факт наличия активного отладчика проверяется
 	// однократно при инициализации класса. Для релизных конфигураций функция всегда возвращает false
 	static bool IsDebuggerActive();
+
+	// Выводит сообщение в консоль отладчика
+	static void DebugOutput(std::string_view msg);
+	static void DebugOutput(std::wstring_view msg);
+	// Разрешает или запрещает вывод в консоль отладчика. По
+	// умолчанию вывод запрещён только для production сборок
+	void EnableDebugOutput(bool enabled) { m_IsDebugOutputEnabled = enabled; }
+	// Возвращает true, если вывод в консоль отладчика разрешён
+	bool IsDebugOutputEnabled() const { return m_IsDebugOutputEnabled; }
 
 	// Вызывает функцию OnAssert заданного обработчика
 	static void OnAssert(const wchar_t* filePath, int line, const wchar_t* expression);
@@ -105,8 +150,17 @@ public:
 	// или он вернёт управление, то будет вызвана функция стандартной библиотеки _exit(exitCode)
 	[[noreturn]] static void Abort(int exitCode = 3);
 
+	// Показывает модальное окно с сообщением об ошибке msgText и заголовком title
+	static void ShowErrorMsgBox(std::wstring_view msgText, std::wstring_view title);
+
 protected:
-	// TODO
+	DebugHelper();
+	virtual ~DebugHelper() override;
+
+	AssertHandler* m_AssertHandler = nullptr;
+	AbortHandler m_AbortHandler = nullptr;
+	bool m_IsDebugOutputEnabled = false;
+	bool m_IsDebuggerActive = false;
 };
 
 } // namespace util
