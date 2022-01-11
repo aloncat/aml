@@ -1,10 +1,11 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
 #include "sysinfo.h"
 
+#include "console.h"
 #include "datetime.h"
 #include "filesystem.h"
 #include "winapi.h"
@@ -94,8 +95,17 @@ char SystemInfo::GetDecimalPoint(bool localeChanged) const
 //--------------------------------------------------------------------------------------------------------------------------------
 bool SystemInfo::IsConsoleApp()
 {
+	class Helper : public Console
+	{
+	public:
+		static bool HasAllocatedConsole() { return s_HasAllocatedConsole; }
+	};
+
 	#if AML_OS_WINDOWS
-		return ::GetConsoleWindow() != nullptr;
+		// Приложение будет считаться консольным (функция вернёт true), если классом Console не создавалось окно
+		// консоли и в данный момент к нашему процессу не подключено никакое другое окно. Недостаток этого способа
+		// в том, что если наше приложение консольное, но запущено в DETACHED состоянии, то функция вёрнет true
+		return !Helper::HasAllocatedConsole() && ::GetConsoleWindow() != nullptr;
 	#else
 		#error Not implemented
 	#endif

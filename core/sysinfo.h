@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -52,8 +52,8 @@ public:
 	// обновит кеш и вернёт актуальное значение. Если локаль программы не устанавливалась, то это всегда будет '.'
 	char GetDecimalPoint(bool localeChanged = false) const;
 
-	// Возвращает true, если приложение консольное (точнее, если к нему прикреплено окно
-	// консоли), и возвращает false, если это обычное приложение (без окна консоли)
+	// Возвращает true, если приложение консольное (точнее, если к нему прикреплено внешнее окно консоли),
+	// и возвращает false, если это обычное приложение (без окна консоли или с окном, но созданным нами)
 	static bool IsConsoleApp();
 
 protected:
