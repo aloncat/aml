@@ -1,10 +1,11 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
 #include "singleton.h"
 
+#include "debug.h"
 #include "thread.h"
 
 using namespace util;
@@ -147,7 +148,8 @@ void SingletonHolder::PopObject()
 //--------------------------------------------------------------------------------------------------------------------------------
 void SingletonHolder::LogErrorAndAbort(std::wstring_view errorMsg)
 {
-	// TODO: вывод в системный журнал и консоль отладчика; работа
-	// должна завершаться вызовом DebugHelper::Abort()
-	abort();
+	// TODO: вывод в системный журнал и консоль отладчика
+
+	// Аварийно завершаем работу
+	DebugHelper::Abort();
 }

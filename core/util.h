@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -51,7 +51,7 @@ namespace util {
 
 // Выполняет минимальную проверку совместимости компилятора/RTL/системы. Если компилятор, RTL или
 // система окажутся несовместимыми, функция вернёт false. Если параметр terminateIfFailed равен
-// true, то работа приложения будет аварийно завершена вызовом функции abort
+// true, то работа приложения будет аварийно завершена вызовом функции DebugHelper::Abort
 bool CheckMinimalRequirements(bool terminateIfFailed = true);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,9 +1,11 @@
 ﻿//∙AML
-// Copyright (C) 2018-2021 Dmitry Maslov
+// Copyright (C) 2018-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
 #include "util.h"
+
+#include "debug.h"
 
 namespace util {
 
@@ -69,6 +71,12 @@ static bool CheckEndianness()
 //--------------------------------------------------------------------------------------------------------------------------------
 AML_NOINLINE bool CheckMinimalRequirements(bool terminateIfFailed)
 {
+	// NB: инициализируем DebugHelper. Нам лучше делать это как можно раньше. И так как вызов CheckMinimalRequirements
+	// обычно делается в самом начале программы (в идеале в первой строке функции Main), то это очень удобное место. К
+	// тому же, чтобы сообщение об ошибке при вызове DebugHelper::Abort было выведено пользователю, необходимо, чтобы
+	// к моменту вызова синглтон уже был проинициализирован
+	DebugHelper::Instance();
+
 	static bool isDone = false;
 	if (isDone || (CheckCompiler() && CheckEndianness()))
 	{
@@ -77,7 +85,7 @@ AML_NOINLINE bool CheckMinimalRequirements(bool terminateIfFailed)
 	}
 
 	if (terminateIfFailed)
-		abort();
+		DebugHelper::Abort();
 
 	return false;
 }

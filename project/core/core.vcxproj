@@ -191,6 +191,7 @@
     <ClCompile Include="..\..\core\console.cpp" />
     <ClCompile Include="..\..\core\crc32.cpp" />
     <ClCompile Include="..\..\core\datetime.cpp" />
+    <ClCompile Include="..\..\core\debug.cpp" />
     <ClCompile Include="..\..\core\exception.cpp" />
     <ClCompile Include="..\..\core\fasthash.cpp" />
     <ClCompile Include="..\..\core\file.cpp" />

@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -64,9 +64,9 @@
 		#undef AML_PRODUCTION
 		#define AML_PRODUCTION 1
 	#else
-		// Макрос AML_PRODUCTION должен быть опеределён вместе с маросом NDEBUG. Как правило, этот макрос
-		// используется для production сборки. Он полностью отключает обработку ошибок в Assert/Verify
-		#error Production target must have NDEBUG macro defined
+		// Макрос AML_PRODUCTION должен быть опеределён вместе с маросом NDEBUG. Как правило, этот макрос используется
+		// для production сборки. Он полностью отключает макрос Halt, а также обработку ошибок в макросах Assert/Verify
+		#error Production target must have NDEBUG macro defined (allowed only in Release)
 	#endif
 #else
 	#define AML_PRODUCTION 0
