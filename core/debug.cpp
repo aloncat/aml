@@ -71,14 +71,36 @@ AssertHandler::Result AssertHandler::OnError(Reason reason, std::wstring_view fi
 //--------------------------------------------------------------------------------------------------------------------------------
 std::wstring AssertHandler::FormatMsg(Reason reason, bool forMsgBox, std::wstring_view filePath, int line, std::wstring_view text)
 {
-	// TODO
-	return std::wstring();
+	Formatter<wchar_t> fmt;
+
+	if (reason == Reason::AssertFailed)
+		fmt << L"Assertion failed";
+	else if (reason == Reason::HaltInvoked)
+		fmt << L"Halt occured";
+
+	if (forMsgBox)
+	{
+		fmt << L" in file:\n    \"" << filePath << L"\"\n    at line " << line << L":\n\n";
+		if (reason == Reason::AssertFailed)
+			fmt << L"Expression:\n";
+		else if (reason == Reason::HaltInvoked)
+			fmt << L"Message:\n";
+	} else
+	{
+		fmt << L" in file \"" << filePath << L"\", line " << line << L": ";
+	}
+	fmt << text;
+
+	return fmt.ToString();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void AssertHandler::LogError(std::wstring_view msg)
 {
-	// TODO
+	if (msg.empty())
+		return;
+
+	// TODO: вывод в системный журнал и консоль отладчика
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
