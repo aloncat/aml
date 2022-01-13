@@ -4,10 +4,13 @@
 
 #pragma once
 
+#include "file.h"
 #include "platform.h"
 #include "singleton.h"
+#include "strcommon.h"
 #include "strformat.h"
 #include "strutil.h"
+#include "threadsync.h"
 #include "util.h"
 
 #include <string>
@@ -219,7 +222,26 @@ public:
 	// Возвращает true, если сессия журнала активна
 	bool IsOpened() const;
 
-	// TODO
+	// Начинает новую сессию журнала в указанном файле. Если указанный файл не существует, то он создается. Если
+	// параметр append равен false, то файл очищается, и в него выводится сообщение о начале новой сессии. Если
+	// append равен true, то сообщение дописывается к концу файла. До первого вызова этой функции весь вывод в
+	// лог игнорируется. Если на момент вызова функции сессия журнала открыта, то она будет завершена. Если
+	// файл будет успешно создан/открыт, то функция вернёт true. В случае ошибки функция вернёт false
+	bool Open(WZStringView filePath, bool append = false);
+
+	// Закрывает текущую сессию, если она была открыта. После вызова этой функции весь вывод в лог
+	// будет игнорироваться до тех пор, пока не будет открыта новая сессия вызовом функции Open
+	void Close();
+
+	virtual void Flush() override { m_File.Flush(); }
+
+protected:
+	virtual void OnRecordEnd(LogRecord* record) override;
+	void WriteToFile(std::wstring_view text);
+
+protected:
+	thread::CriticalSection m_CS;
+	BinaryFile m_File;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -238,5 +260,14 @@ protected:
 	virtual LogRecord* StartRecord(MsgType msgType) override;
 	virtual void OnRecordEnd(LogRecord* record) override;
 };
+
+//--------------------------------------------------------------------------------------------------------------------------------
+#define AML_SYSLOG_IMPL(MSG_TYPE, MSG) \
+	((void)(*util::LogRecordHolder(MSG_TYPE) << MSG, 0))
+
+#define LOG_INFO(MSG) AML_SYSLOG_IMPL(util::Log::MsgType::Info, MSG)
+#define LOG_DEBUG(MSG) AML_SYSLOG_IMPL(util::Log::MsgType::Debug, MSG)
+#define LOG_WARNING(MSG) AML_SYSLOG_IMPL(util::Log::MsgType::Warning, MSG)
+#define LOG_ERROR(MSG) AML_SYSLOG_IMPL(util::Log::MsgType::Error, MSG)
 
 } // namespace util

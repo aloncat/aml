@@ -9,6 +9,8 @@
 #include "datetime.h"
 #include "debug.h"
 
+#include <vector>
+
 using namespace util;
 
 // TODO: сейчас вывод в консоль отладчика, запись в файл, а также преобразование Wide->UTF-8 происходят в одном
@@ -300,33 +302,104 @@ LogRecordHolder::LogRecordHolder(Log& log, LogRecord::MsgType msgType)
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+//   Log::LogRecordStack
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+class Log::LogRecordStack final
+{
+public:
+	LogRecordStack(Log& log);
+	~LogRecordStack();
+
+	LogRecord* Get();
+	void Release(LogRecord* record);
+
+private:
+	Log& m_Log;
+	thread::CriticalSection m_CS;
+	std::vector<LogRecord*> m_Records;
+};
+
+//--------------------------------------------------------------------------------------------------------------------------------
+Log::LogRecordStack::LogRecordStack(Log& log)
+	: m_Log(log)
+	, m_CS(500)
+{
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+Log::LogRecordStack::~LogRecordStack()
+{
+	for (auto record : m_Records)
+		AML_SAFE_DELETE(record);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+LogRecord* Log::LogRecordStack::Get()
+{
+	thread::Lock lock(m_CS);
+
+	if (!m_Records.empty())
+	{
+		auto p = m_Records.back();
+		m_Records.pop_back();
+		return p;
+	}
+
+	lock.Leave();
+	return new LogRecord(m_Log);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void Log::LogRecordStack::Release(LogRecord* record)
+{
+	if (record)
+	{
+		record->Clear();
+
+		thread::Lock lock(m_CS);
+		m_Records.push_back(record);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 //   Log
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------------------------------------
 Log::Log()
+	: m_IsDebugMsgAllowed(!IsProductionBuild())
 {
-	// TODO
+	m_Records = new LogRecordStack(*this);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 Log::~Log()
 {
-	// TODO
+	AML_SAFE_DELETE(m_Records);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 LogRecord* Log::StartRecord(MsgType msgType)
 {
-	// TODO
-	return nullptr;
+	const bool utc = m_TimeFormat == TimeFormat::Utc;
+	const bool outputEnabled = m_IsOutputEnabled && (msgType != MsgType::Debug || m_IsDebugMsgAllowed);
+
+	auto record = m_Records->Get();
+	record->SetOutputEnabled(outputEnabled);
+	record->Start(msgType, outputEnabled ? DateTime::Now(utc) : 0);
+
+	return record;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void Log::OnRecordEnd(LogRecord* record)
 {
-	// TODO
+	m_Records->Release(record);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -336,10 +409,47 @@ void Log::OnRecordEnd(LogRecord* record)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------------------------------------
+FileLog::~FileLog()
+{
+	Close();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
 bool FileLog::IsOpened() const
 {
+	return m_File.IsOpened();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool FileLog::Open(WZStringView filePath, bool append)
+{
+	Close();
+
 	// TODO
 	return false;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void FileLog::Close()
+{
+	m_IsOutputEnabled = false;
+	if (m_File.IsOpened())
+		m_File.Close();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void FileLog::OnRecordEnd(LogRecord* record)
+{
+	if (record && record->IsOutputEnabled() && IsOpened())
+		WriteToFile(record->GetData());
+
+	Log::OnRecordEnd(record);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void FileLog::WriteToFile(std::wstring_view text)
+{
+	// TODO
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -351,18 +461,28 @@ bool FileLog::IsOpened() const
 //--------------------------------------------------------------------------------------------------------------------------------
 SystemLog::SystemLog()
 {
-	// TODO
+	// NB: так как синглтон DebugHelper используется при выводе сообщений, в том числе о критических ошибках,
+	// то мы не хотим, чтобы он инициализировался по требованию. Мы хотим, чтобы к моменту вывода в системный
+	// журнал DebugHelper уже был проиницилизирован. Таким образом, факт наличия инстанса системного журнала
+	// будет гарантировать и наличие инстанса DebugHelper
+	DebugHelper::Instance();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 LogRecord* SystemLog::StartRecord(MsgType msgType)
 {
-	// TODO
-	return nullptr;
+	m_IsOutputEnabled = IsOpened() || DebugHelper::Instance().IsDebugOutputEnabled();
+	return FileLog::StartRecord(msgType);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void SystemLog::OnRecordEnd(LogRecord* record)
 {
-	// TODO
+	if (record && record->IsOutputEnabled())
+	{
+		auto&& s = record->GetData();
+		DebugHelper::DebugOutput(s);
+	}
+
+	FileLog::OnRecordEnd(record);
 }
