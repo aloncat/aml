@@ -92,6 +92,9 @@
     <ClInclude Include="..\..\core\strformat.h">
       <Filter>util\string</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\core\log.h">
+      <Filter>util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\core\prefix.cpp">
@@ -146,6 +149,9 @@
       <Filter>util\string</Filter>
     </ClCompile>
     <ClCompile Include="..\..\core\debug.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\core\log.cpp">
       <Filter>util</Filter>
     </ClCompile>
   </ItemGroup>

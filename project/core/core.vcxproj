@@ -172,6 +172,7 @@
     <ClInclude Include="..\..\core\file.h" />
     <ClInclude Include="..\..\core\filesystem.h" />
     <ClInclude Include="..\..\core\forward.h" />
+    <ClInclude Include="..\..\core\log.h" />
     <ClInclude Include="..\..\core\pch.h" />
     <ClInclude Include="..\..\core\platform.h" />
     <ClInclude Include="..\..\core\randgen.h" />
@@ -196,6 +197,7 @@
     <ClCompile Include="..\..\core\fasthash.cpp" />
     <ClCompile Include="..\..\core\file.cpp" />
     <ClCompile Include="..\..\core\filesystem.cpp" />
+    <ClCompile Include="..\..\core\log.cpp" />
     <ClCompile Include="..\..\core\prefix.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

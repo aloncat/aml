@@ -27,6 +27,11 @@ namespace util {
 	class BinaryFile;
 	class File;
 	class MemoryFile;
+	// Журналы
+	class FileLog;
+	class Log;
+	class Logable;
+	class LogRecord;
 	// Разное
 	class Console;
 	class FuncToggle;

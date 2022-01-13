@@ -183,6 +183,9 @@ public:
 		GrowAndAppend(inp, std::char_traits<CharT>::length(inp));
 	}
 
+	// TODO: проверить целесообразность замены memcpy в функциях Append и GrowAndAppend этого класса (а также аналогичных
+	// мест в классах MemoryFile и MemoryWriter) своей реализацией для коротких строк. Будет ли своя функция быстрее?
+
 	// Добавляет count первых символов из data
 	void Append(const CharT* data, size_t count)
 	{
