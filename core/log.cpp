@@ -8,6 +8,7 @@
 #include "array.h"
 #include "datetime.h"
 #include "debug.h"
+#include "filesystem.h"
 
 #include <vector>
 
@@ -425,7 +426,33 @@ bool FileLog::Open(WZStringView filePath, bool append)
 {
 	Close();
 
-	// TODO
+	if (!filePath.empty())
+	{
+		const auto dirPath = FileSystem::ExtractPath(filePath);
+		if (!dirPath.empty() && !FileSystem::DirectoryExists(dirPath))
+			FileSystem::MakeDirectory(dirPath, true);
+
+		unsigned flags = append ? util::FILE_OPEN_ALWAYS : util::FILE_CREATE_ALWAYS;
+		if (m_File.Open(filePath, flags | util::FILE_OPEN_READWRITE))
+		{
+			const long long fileSize = append ? m_File.GetSize() : 0;
+			if (fileSize > 0)
+			{
+				m_File.SetPosition(fileSize);
+				m_File.Write("\n***\n\n", 6);
+			} else
+			{
+				// UTF-8 BOM
+				m_File.Write("\xef\xbb\xbf", 3);
+			}
+
+			m_IsOutputEnabled = true;
+			*LogRecordHolder(*this, MsgType::Info) << L"New log session started";
+
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -449,7 +476,28 @@ void FileLog::OnRecordEnd(LogRecord* record)
 //--------------------------------------------------------------------------------------------------------------------------------
 void FileLog::WriteToFile(std::wstring_view text)
 {
-	// TODO
+	if (const size_t size = text.size())
+	{
+		const size_t LOCAL_SIZE = 3840;
+		int bufferSize = LOCAL_SIZE;
+
+		// Каждый символ UCS-2 (эта кодировка использовалась до Windows 2000) может стать максимум 3 байтами в UTF-8.
+		// Это же справедливо и для UTF-16, но её суррогатные пары (2 16-битных слова) будут закодированы 4 байтами.
+		// Поэтому нам стоит искать требуемый размер буфера, только если он может быть больше размера локального
+		if (size > LOCAL_SIZE / 3)
+		{
+			bufferSize = ToUtf8(nullptr, 0, text);
+			if (bufferSize <= 0)
+				return;
+		}
+
+		SmartArray<char, LOCAL_SIZE> buffer(bufferSize);
+		if (int len = ToUtf8(buffer, bufferSize, text); len > 0)
+		{
+			thread::Lock lock(m_CS);
+			m_File.Write(buffer, len);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -463,7 +511,7 @@ SystemLog::SystemLog()
 {
 	// NB: так как синглтон DebugHelper используется при выводе сообщений, в том числе о критических ошибках,
 	// то мы не хотим, чтобы он инициализировался по требованию. Мы хотим, чтобы к моменту вывода в системный
-	// журнал DebugHelper уже был проиницилизирован. Таким образом, факт наличия инстанса системного журнала
+	// журнал DebugHelper уже был проинициализирован. Таким образом, факт наличия инстанса системного журнала
 	// будет гарантировать и наличие инстанса DebugHelper
 	DebugHelper::Instance();
 }
