@@ -6,8 +6,10 @@
 #include "debug.h"
 
 #include "array.h"
+#include "datetime.h"
 #include "exception.h"
 #include "filesystem.h"
+#include "log.h"
 #include "strcommon.h"
 #include "strformat.h"
 #include "strutil.h"
@@ -39,6 +41,11 @@ AssertHandler::Result AssertHandler::OnError(Reason reason, std::wstring_view fi
 
 	if (IsProductionBuild())
 		return Result::Skip;
+
+	// Перед тем, как выбросить исключение, показать окно с сообщением или приостановить
+	// выполнение, убедимся, что возникшая ошибка выведена в файл системного журнала
+	if (SystemLog::InstanceExists())
+		SystemLog::Instance().Flush();
 
 	// TODO: тут хотелось бы кастомное окно, в котором будут три кнопки ("Skip", "Skip all" и "Terminate") и текст
 	// сообщения об ошибке. Возможно также стоит добавить кнопку "Copy to clipboard" для копирования текста сообщения
@@ -100,7 +107,19 @@ void AssertHandler::LogError(std::wstring_view msg)
 	if (msg.empty())
 		return;
 
-	// TODO: вывод в системный журнал и консоль отладчика
+	// Если синглтон системного журнала существует (уже был создан, но ещё не был уничтожен),
+	// то выведем сообщение в журнал. В консоль отладчика оно будет выведено автоматически
+	if (SystemLog::InstanceExists() && SystemLog::Instance().IsOpened())
+	{
+		*LogRecordHolder(SystemLog::Instance(), Log::MsgType::Error) << msg;
+	}
+	// Если синглтон системного журнала не существует, то выведем сообщение только в консоль отладчика
+	else if (DebugHelper::Instance().IsDebugOutputEnabled())
+	{
+		auto time = DateTime::Now();
+		auto header = LogRecord::FormatHeader(Log::MsgType::Error, time);
+		DebugHelper::DebugOutput(std::move(header) + msg + L'\n');
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -285,7 +304,17 @@ AML_NOINLINE void DebugHelper::Abort(int exitCode)
 		{
 			auto errorText = L"[DebugHelper] Abort has been called";
 
-			// TODO: вывод в системный журнал и консоль отладчика
+			if (SystemLog::InstanceExists() && SystemLog::Instance().IsOpened())
+			{
+				*LogRecordHolder(SystemLog::Instance(), Log::MsgType::Error) << errorText;
+				SystemLog::Instance().Flush();
+			}
+			else if (instance.m_IsDebugOutputEnabled)
+			{
+				auto time = DateTime::Now();
+				auto header = LogRecord::FormatHeader(Log::MsgType::Error, time);
+				DebugOutput(std::move(header) + errorText + L'\n');
+			}
 
 			if (instance.m_AbortHandler)
 			{

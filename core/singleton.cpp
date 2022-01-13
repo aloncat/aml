@@ -5,7 +5,9 @@
 #include "pch.h"
 #include "singleton.h"
 
+#include "datetime.h"
 #include "debug.h"
+#include "log.h"
 #include "thread.h"
 
 using namespace util;
@@ -148,7 +150,21 @@ void SingletonHolder::PopObject()
 //--------------------------------------------------------------------------------------------------------------------------------
 void SingletonHolder::LogErrorAndAbort(std::wstring_view errorMsg)
 {
-	// TODO: вывод в системный журнал и консоль отладчика
+	// Если синглтон системного журнала существует (уже был создан, но ещё не был уничтожен),
+	// то выведем сообщение в журнал. В консоль отладчика оно будет выведено автоматически
+	if (SystemLog::InstanceExists() && SystemLog::Instance().IsOpened())
+	{
+		*LogRecordHolder(SystemLog::Instance(), Log::MsgType::Error) << errorMsg;
+		SystemLog::Instance().Flush();
+	}
+	// Если синглтон системного журнала не существует, то выведем сообщение только
+	// в консоль отладчика, но при условии, что синглтон DebugHelper также существует
+	else if (DebugHelper::InstanceExists() && DebugHelper::Instance().IsDebugOutputEnabled())
+	{
+		auto time = DateTime::Now();
+		auto header = LogRecord::FormatHeader(Log::MsgType::Error, time);
+		DebugHelper::DebugOutput(std::move(header) + errorMsg + L'\n');
+	}
 
 	// Аварийно завершаем работу
 	DebugHelper::Abort();
