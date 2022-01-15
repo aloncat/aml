@@ -1,12 +1,11 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
 #include "strformat.h"
 
 #include "array.h"
-#include "strutil.h"
 
 namespace util {
 
@@ -15,6 +14,7 @@ template<class CharT>
 class BasicZSView : public BasicZStringView<CharT>
 {
 public:
+	// NB: параметр str указывает на начало null-terminated строки
 	constexpr BasicZSView(const CharT* str, size_t size) noexcept
 		: BasicZStringView<CharT>(str, size)
 	{

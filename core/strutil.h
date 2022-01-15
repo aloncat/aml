@@ -6,7 +6,6 @@
 
 #include "exception.h"
 #include "platform.h"
-#include "strcommon.h"
 #include "util.h"
 
 #include <string>
@@ -16,6 +15,18 @@
 #include <utility>
 
 namespace util {
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Вспомогательные шаблоны
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class StringViewIsh, class CharT, class Traits = std::char_traits<CharT>>
+using IsStringViewIsh = std::enable_if_t<std::conjunction_v<
+	std::is_convertible<const StringViewIsh&, std::basic_string_view<CharT, Traits>>,
+	std::negation<std::is_convertible<const StringViewIsh&, const CharT*>>>>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

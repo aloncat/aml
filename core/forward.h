@@ -33,7 +33,9 @@ namespace util {
 	class Logable;
 	class LogRecord;
 	// Разное
+	class AssertHandler;
 	class Console;
 	class FuncToggle;
+	class VirtualKey;
 	struct DateTime;
 }

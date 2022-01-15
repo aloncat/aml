@@ -6,6 +6,7 @@
 #include "strutil.h"
 
 #include "array.h"
+#include "strcommon.h"
 #include "winapi.h"
 
 namespace util {
