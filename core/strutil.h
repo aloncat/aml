@@ -6,6 +6,7 @@
 
 #include "exception.h"
 #include "platform.h"
+#include "strcommon.h"
 #include "util.h"
 
 #include <string>
@@ -13,6 +14,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace util {
 
@@ -75,6 +77,22 @@ std::string ToUtf8(std::wstring_view str);
 // В случае ошибки или если размер буфера недостаточен, функция вернёт -1. Если buffer или bufferSize равен 0, то функция
 // вернёт необходимый размер буфера (в символах). Функция не добавляет в buffer терминирующий 0
 int ToUtf8(char* buffer, size_t bufferSize, std::wstring_view str);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Функция Split
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+enum {
+	SPLIT_TRIM					= 0x01,						// Применить к подстрокам функцию Trim
+	SPLIT_ALLOW_EMPTY			= 0x02,						// Включать в результат пустые подстроки
+	SPLIT_TRAILING_DELIMITER	= 0x04 + SPLIT_ALLOW_EMPTY	// Трактовать разделитель на конце str как пустую подстроку
+};
+
+// Разбивает исходную строку str на подстроки, используя delimiters как набор символов-разделителей
+std::vector<std::string> Split(std::string_view str, ZStringView delimiters, int flags = SPLIT_TRIM);
+std::vector<std::wstring> Split(std::wstring_view str, WZStringView delimiters, int flags = SPLIT_TRIM);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

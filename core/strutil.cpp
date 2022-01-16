@@ -1,12 +1,11 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
 #include "strutil.h"
 
 #include "array.h"
-#include "strcommon.h"
 #include "winapi.h"
 
 namespace util {
@@ -332,6 +331,125 @@ std::string ToUtf8(std::wstring_view str)
 int ToUtf8(char* buffer, size_t bufferSize, std::wstring_view str)
 {
 	return WideToMB(buffer, bufferSize, MBCodePage::Utf8, str.data(), str.size());
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Функция Split
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class CharT, class ViewT = std::basic_string_view<CharT>>
+static size_t FindFirstOf(const ViewT str, const CharT* what, size_t from)
+{
+	if (what && *what)
+	{
+		const size_t len = str.size();
+		const CharT* p = str.data();
+
+		if (!what[1])
+		{
+			for (size_t i = from; i < len; ++i)
+			{
+				if (p[i] == *what)
+					return i;
+			}
+		} else
+		{
+			for (size_t i = from; i < len; ++i)
+			{
+				for (size_t j = 0; what[j]; ++j)
+				{
+					if (p[i] == what[j])
+						return i;
+				}
+			}
+		}
+	}
+
+	return ViewT::npos;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class CharT, class StringT = std::basic_string<CharT>>
+static void Split(std::vector<StringT>& tokens, const std::basic_string_view<CharT> str,
+	const CharT* const delimiters, int flags)
+{
+	const size_t MAX_DELIMS = 32;
+	size_t delimPos[MAX_DELIMS];
+
+	const size_t len = str.size();
+	size_t tokenCount = 0, lastDelim = StringT::npos;
+	for (size_t fromPos = 0, delimCount = 0; fromPos < len;)
+	{
+		lastDelim = FindFirstOf(str, delimiters, fromPos);
+		if (delimCount < MAX_DELIMS)
+			delimPos[delimCount++] = lastDelim;
+		if (lastDelim == fromPos)
+		{
+			++fromPos;
+			if (flags & SPLIT_ALLOW_EMPTY)
+				++tokenCount;
+		} else
+		{
+			fromPos = (lastDelim == StringT::npos) ? len : lastDelim + 1;
+			++tokenCount;
+		}
+	}
+
+	const int TRAILING_FLAG = SPLIT_ALLOW_EMPTY | SPLIT_TRAILING_DELIMITER;
+	if ((flags & TRAILING_FLAG) == TRAILING_FLAG && lastDelim != StringT::npos)
+		++tokenCount;
+	else if (!tokenCount)
+		return;
+
+	tokens.reserve(tokenCount);
+	for (size_t fromPos = 0, delimIdx = 0; fromPos < len;)
+	{
+		lastDelim = (delimIdx < MAX_DELIMS) ? delimPos[delimIdx++] :
+			FindFirstOf(str, delimiters, fromPos);
+		if (lastDelim == fromPos)
+		{
+			++fromPos;
+			if (flags & SPLIT_ALLOW_EMPTY)
+				tokens.emplace_back();
+		} else
+		{
+			size_t tokenLen = ((lastDelim == StringT::npos) ? len : lastDelim) - fromPos;
+			auto left = str.data() + fromPos;
+			fromPos += tokenLen + 1;
+
+			if (flags & SPLIT_TRIM)
+			{
+				auto right = left + tokenLen - 1;
+				while (left <= right && (*left == 32 || *left == 9)) ++left;
+				if (left < right) while (*right == 32 || *right == 9) --right;
+				tokenLen = right - left + 1;
+			}
+			if (tokenLen || (flags & SPLIT_ALLOW_EMPTY))
+				tokens.emplace_back(left, tokenLen);
+		}
+	}
+
+	if ((flags & TRAILING_FLAG) == TRAILING_FLAG && lastDelim != StringT::npos)
+		tokens.emplace_back();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::vector<std::string> Split(std::string_view str, ZStringView delimiters, int flags)
+{
+	std::vector<std::string> tokens;
+	Split(tokens, str, delimiters.c_str(), flags);
+	return tokens;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::vector<std::wstring> Split(std::wstring_view str, WZStringView delimiters, int flags)
+{
+	std::vector<std::wstring> tokens;
+	Split(tokens, str, delimiters.c_str(), flags);
+	return tokens;
 }
 
 } // namespace util
