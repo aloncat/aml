@@ -39,19 +39,19 @@ void Print(std::wstring_view str, int color)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------------------------------------
-template<class CharType>
-static void PrintColored(const CharType* str, size_t count)
+template<class CharT>
+static void PrintColored(const CharT* str, size_t count)
 {
-	CharType localBuffer[640];
-	util::FlexibleArray<CharType> buffer(localBuffer);
-	CharType* out = buffer;
+	CharT localBuffer[640];
+	util::FlexibleArray<CharT> buffer(localBuffer);
+	CharT* out = buffer;
 
 	int color, nextColor = 7;
-	const CharType* const end = str + count;
-	for (const CharType* p = str; p < end;)
+	const CharT* const end = str + count;
+	for (const CharT* p = str; p < end;)
 	{
 		color = nextColor;
-		CharType* const outEnd = std::min(buffer + buffer.GetSize(), out + (end - p));
+		CharT* const outEnd = std::min(buffer + buffer.GetSize(), out + (end - p));
 
 		while (out < outEnd && *p != '#')
 			*out++ = *p++;
@@ -84,7 +84,7 @@ static void PrintColored(const CharType* str, size_t count)
 
 		if (out > buffer)
 		{
-			std::basic_string_view<CharType> s(buffer, out - buffer);
+			std::basic_string_view<CharT> s(buffer, out - buffer);
 			util::SystemConsole::Instance().Write(s, color);
 			out = buffer;
 		}
@@ -110,15 +110,15 @@ void Printc(std::wstring_view coloredStr)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //--------------------------------------------------------------------------------------------------------------------------------
-template<class CharType>
-static void PrintfHelper(const CharType* format, va_list args)
+template<class CharT>
+static void PrintfHelper(const CharT* format, va_list args)
 {
 	if (format && *format)
 	{
 		// Сканируем строку, чтобы проверить, нуждается ли она в форматировании. Если в строке содержатся только
 		// коды цвета, то прямой вызов PrintColored даст значительное ускорение. В противном случае проверка не
 		// повлияет (если '%' расположен в начале строки) или увеличит время выполнения не более, чем на 1%
-		const CharType* p = format;
+		const CharT* p = format;
 		while (*p && *p != '%') ++p;
 
 		if (*p == 0)
@@ -126,7 +126,7 @@ static void PrintfHelper(const CharType* format, va_list args)
 			PrintColored(format, p - format);
 		} else
 		{
-			util::FormatEx(format, args, [](util::BasicZStringView<CharType> str) {
+			util::FormatEx(format, args, [](util::BasicZStringView<CharT> str) {
 				PrintColored(str.data(), str.size());
 			});
 		}

@@ -292,15 +292,15 @@ AML_NOINLINE void DebugHelper::OnHalt(const wchar_t* filePath, int line, std::ws
 //--------------------------------------------------------------------------------------------------------------------------------
 AML_NOINLINE void DebugHelper::Abort(int exitCode)
 {
-	static int firstExitCode = exitCode;
+	static const int firstExitCode = exitCode;
+
 	if (DebugHelper::InstanceExists())
 	{
 		AML_DBG_BREAK;
-		auto& instance = Instance();
-		instance.m_CS.Enter();
 
-		static int enteredC = 0;
-		if (enteredC++ == 0)
+		Instance().m_CS.Enter();
+
+		if (static int entranceCount = 0; !entranceCount++)
 		{
 			auto errorText = L"[DebugHelper] Abort has been called";
 
@@ -309,17 +309,15 @@ AML_NOINLINE void DebugHelper::Abort(int exitCode)
 				*LogRecordHolder(SystemLog::Instance(), Log::MsgType::Error) << errorText;
 				SystemLog::Instance().Flush();
 			}
-			else if (instance.m_IsDebugOutputEnabled)
+			else if (Instance().m_IsDebugOutputEnabled)
 			{
 				auto time = DateTime::Now();
 				auto header = LogRecord::FormatHeader(Log::MsgType::Error, time);
 				DebugOutput(std::move(header) + errorText + L'\n');
 			}
 
-			if (instance.m_AbortHandler)
-			{
-				instance.m_AbortHandler(firstExitCode);
-			}
+			if (auto handler = Instance().m_AbortHandler)
+				handler(firstExitCode);
 
 			// Если пользовательский обработчик не установлен или вернул управление,
 			// то перед аварийным завершением работы выведем сообщение об ошибке

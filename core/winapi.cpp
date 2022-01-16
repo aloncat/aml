@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -34,7 +34,7 @@ using namespace util;
 
 //--------------------------------------------------------------------------------------------------------------------------------
 #define AML_IMPLEMENT_WINAPI_FN(NAME) \
-	winapi::NAME##Fn WinAPI::NAME = nullptr; \
+	winapi::NAME##Fn WinAPI::NAME; \
 	bool WinAPI::Can##NAME() noexcept { \
 		if (!s_IsLoaded) \
 			Load(); \
@@ -48,7 +48,7 @@ using namespace util;
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool WinAPI::s_IsLoaded = false;
+bool WinAPI::s_IsLoaded;
 
 AML_IMPLEMENT_WINAPI_FN(GetTickCount64);
 

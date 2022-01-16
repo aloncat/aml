@@ -38,8 +38,8 @@ void SingletonHolder::KillAll()
 //--------------------------------------------------------------------------------------------------------------------------------
 void SingletonHolder::Initialize()
 {
-	size_t spinC = 0;
 	uint8_t current = 0;
+	size_t spinCounter = 0;
 	static std::atomic<uint8_t> initLock;
 	while (!initLock.compare_exchange_weak(current, 1, std::memory_order_acquire))
 	{
@@ -50,9 +50,9 @@ void SingletonHolder::Initialize()
 		// Так как мы ещё не можем обращаться к другим синглтонам (в т.ч. к SystemInfo, чтобы узнать
 		// количество логических процессоров в системе), то после 1000 попыток захвата спинлока отдаём
 		// системе остаток тайм-слайса нашего потока (на случай, если процессор в системе всего один)
-		if (++spinC == 1000)
+		if (++spinCounter == 1000)
 		{
-			spinC = 0;
+			spinCounter = 0;
 			thread::Sleep(0);
 		} else
 			thread::CPUPause();

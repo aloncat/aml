@@ -65,7 +65,7 @@ AML_NOINLINE unsigned SystemInfo::GetOSUptime()
 		else
 		{
 			size_t last = ::GetTickCount();
-			static const size_t first = last;
+			static const auto first = last;
 			osUptime = last;
 			if (last < first)
 				osUptime += 1ll << 32;
@@ -128,19 +128,19 @@ void SystemInfo::InitCoreCount()
 			auto info = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION>(p);
 			if (::GetLogicalProcessorInformation(info, &bufferSize))
 			{
-				unsigned coreC = 0, logicalC = 0;
+				unsigned cores = 0, threads = 0;
 				for (size_t size = 0; size < bufferSize; size += sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION))
 				{
 					if (info->Relationship == RelationProcessorCore)
 					{
-						++coreC;
+						++cores;
 						for (auto mask = info->ProcessorMask; mask; mask >>= 1)
-							logicalC += (mask & 1) ? 1 : 0;
+							threads += (mask & 1) ? 1 : 0;
 					}
 					++info;
 				}
-				m_CoreCount.logical = logicalC ? logicalC : 1;
-				m_CoreCount.physical = coreC ? coreC : 1;
+				m_CoreCount.logical = threads ? threads : 1;
+				m_CoreCount.physical = cores ? cores : 1;
 				if (m_CoreCount.logical < m_CoreCount.physical)
 					m_CoreCount.logical = m_CoreCount.physical;
 			}

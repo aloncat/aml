@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -448,23 +448,23 @@ void Console::PollInput(bool forcePoll)
 
 	if (CheckPollTime() || forcePoll)
 	{
-		DWORD totalEventC = 0;
-		if (::GetNumberOfConsoleInputEvents(m_Info.inHandle, &totalEventC) && totalEventC)
+		DWORD totalEvents = 0;
+		if (::GetNumberOfConsoleInputEvents(m_Info.inHandle, &totalEvents) && totalEvents)
 		{
-			const DWORD MAX_EVENT_C = 24;
-			INPUT_RECORD eventBuffer[MAX_EVENT_C];
+			const DWORD MAX_EVENTS = 24;
+			INPUT_RECORD eventBuffer[MAX_EVENTS];
 
-			while (totalEventC)
+			while (totalEvents)
 			{
-				DWORD eventC = 0;
-				if (::ReadConsoleInputA(m_Info.inHandle, eventBuffer, MAX_EVENT_C, &eventC) == 0 || !eventC)
+				DWORD eventCount = 0;
+				if (::ReadConsoleInputA(m_Info.inHandle, eventBuffer, MAX_EVENTS, &eventCount) == 0 || !eventCount)
 					break;
 
 				// NB: иногда мы можем прочитать больше событий, чем ожидали. Так происходит, когда между
 				// получением количества событий и их чтением в буфер успевает поступить новое событие
-				totalEventC -= (eventC < totalEventC) ? eventC : totalEventC;
+				totalEvents -= (eventCount < totalEvents) ? eventCount : totalEvents;
 
-				for (unsigned i = 0; i < eventC; ++i)
+				for (unsigned i = 0; i < eventCount; ++i)
 				{
 					INPUT_RECORD& event = eventBuffer[i];
 					if (event.EventType == KEY_EVENT)

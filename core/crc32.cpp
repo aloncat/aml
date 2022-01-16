@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -13,7 +13,7 @@ namespace hash {
 constexpr uint32_t CRC32_POLYNOMIAL = 0xedb88320;
 
 static uint32_t crc32Table[256];
-static volatile bool crc32TableReady = false;
+static volatile bool crc32TableReady;
 
 //--------------------------------------------------------------------------------------------------------------------------------
 static AML_NOINLINE void InitCRC32Table()

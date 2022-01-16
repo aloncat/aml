@@ -77,7 +77,7 @@ AML_NOINLINE bool CheckMinimalRequirements(bool terminateIfFailed)
 	// к моменту вызова синглтон уже был проинициализирован
 	DebugHelper::Instance();
 
-	static bool isDone = false;
+	static bool isDone;
 	if (isDone || (CheckCompiler() && CheckEndianness()))
 	{
 		isDone = true;

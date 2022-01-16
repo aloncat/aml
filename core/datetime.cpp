@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -10,7 +10,7 @@
 namespace util {
 
 // Суммарное количество дней в невисокосном году до последнего дня предыдущего месяца
-const int monthA[16] = { -1, -1, 30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333 };
+const int months[16] = { -1, -1, 30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333 };
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void DateTime::Clear() noexcept
@@ -82,9 +82,9 @@ uint64_t DateTime::EncodeTime() noexcept
 AML_NOINLINE uint64_t DateTime::EncodeDate() noexcept
 {
 	unsigned y = year - 1601;
-	unsigned leapYearC = y >> 2;
-	leapYearC = leapYearC - leapYearC / 25 + ((leapYearC / 25) >> 2);
-	unsigned days = y * 365 + leapYearC + monthA[month & 15] + day;
+	unsigned leapYears = y >> 2;
+	leapYears = leapYears - leapYears / 25 + ((leapYears / 25) >> 2);
+	unsigned days = y * 365 + leapYears + months[month & 15] + day;
 
 	if (month > 2 && !(year & 3) && (year % 100 || !(year % 400)))
 		++days;
@@ -215,7 +215,7 @@ AML_NOINLINE void DateTime::SetDate(unsigned totalDays) noexcept
 	else
 		month = (totalDays < 304) ? 10 : (totalDays < 334) ? 11 : 12;
 
-	day = static_cast<uint16_t>(totalDays - monthA[month]);
+	day = static_cast<uint16_t>(totalDays - months[month]);
 }
 
 } // namespace util
