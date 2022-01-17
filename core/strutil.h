@@ -32,6 +32,32 @@ using IsStringViewIsh = std::enable_if_t<std::conjunction_v<
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+//   Функции Trim
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция Trim удаляет из строки str начальные и конечные пробелы и символы
+// табуляции. TrimLeft удаляет только начальные, TrimRight - только конечные
+std::string Trim(std::string_view str);
+std::wstring Trim(std::wstring_view str);
+std::string TrimLeft(std::string_view str);
+std::wstring TrimLeft(std::wstring_view str);
+std::string TrimRight(std::string_view str);
+std::wstring TrimRight(std::wstring_view str);
+
+// Функции Trim*Inplace отличаются от обычных функций Trim* тем, что изменяют непосредственно строку str
+// и не возвращают результат. Параметр fast позволяет выбрать способ модификации строки: если он равен
+// true, то будет использован быстрый метод без изменения размера памяти, занимаемой строкой; если
+// параметр fast равен false, то по возможности объём пямяти, занимаемый строкой, будет уменьшен
+void TrimInplace(std::string& str, bool fast = true);
+void TrimInplace(std::wstring& str, bool fast = true);
+void TrimLeftInplace(std::string& str, bool fast = true);
+void TrimLeftInplace(std::wstring& str, bool fast = true);
+void TrimRightInplace(std::string& str, bool fast = true);
+void TrimRightInplace(std::wstring& str, bool fast = true);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 //   Конвертация строк Ansi/Wide
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

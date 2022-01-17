@@ -26,6 +26,199 @@ const EmptyStringContainer EMPTY;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+//   Функции Trim
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class T>
+static size_t FindFirstNotSpace(const T& str)
+{
+	auto p = str.data();
+	for (size_t i = 0, len = str.size(); i < len; ++i, ++p)
+	{
+		if (*p != 9 && *p != 32)
+			return i;
+	}
+	return T::npos;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class T>
+static size_t FindLastNotSpace(const T& str)
+{
+	const size_t len = str.size();
+	auto p = str.data() + len - 1;
+	for (size_t i = len; i > 0; --i, --p)
+	{
+		if (*p != 9 && *p != 32)
+			return i - 1;
+	}
+	return T::npos;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::string Trim(std::string_view str)
+{
+	size_t startPos = FindFirstNotSpace(str);
+	if (startPos == str.npos)
+		return std::string();
+
+	size_t endPos = FindLastNotSpace(str);
+	return std::string(str.data() + startPos, endPos - startPos + 1);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring Trim(std::wstring_view str)
+{
+	size_t startPos = FindFirstNotSpace(str);
+	if (startPos == str.npos)
+		return std::wstring();
+
+	size_t endPos = FindLastNotSpace(str);
+	return std::wstring(str.data() + startPos, endPos - startPos + 1);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::string TrimLeft(std::string_view str)
+{
+	if (size_t startPos = FindFirstNotSpace(str); startPos != str.npos)
+		return std::string(str.data() + startPos, str.size() - startPos);
+
+	return std::string();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring TrimLeft(std::wstring_view str)
+{
+	if (size_t startPos = FindFirstNotSpace(str); startPos != str.npos)
+		return std::wstring(str.data() + startPos, str.size() - startPos);
+
+	return std::wstring();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::string TrimRight(std::string_view str)
+{
+	if (size_t endPos = FindLastNotSpace(str); endPos != str.npos)
+		return std::string(str.data(), endPos + 1);
+
+	return std::string();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring TrimRight(std::wstring_view str)
+{
+	if (size_t endPos = FindLastNotSpace(str); endPos != str.npos)
+		return std::wstring(str.data(), endPos + 1);
+
+	return std::wstring();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class StringT>
+static bool TrimInplaceImpl(StringT& str)
+{
+	size_t startPos = FindFirstNotSpace(str);
+	if (startPos == StringT::npos)
+	{
+		str.clear();
+		return true;
+	}
+
+	bool result = false;
+	size_t endPos = FindLastNotSpace(str);
+	if (endPos + 1 < str.size())
+	{
+		str.erase(endPos + 1);
+		result = true;
+	}
+	if (startPos > 0)
+	{
+		str.erase(0, startPos);
+		result = true;
+	}
+	return result;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimInplace(std::string& str, bool fast)
+{
+	if (TrimInplaceImpl(str) && !fast)
+		str.shrink_to_fit();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimInplace(std::wstring& str, bool fast)
+{
+	if (TrimInplaceImpl(str) && !fast)
+		str.shrink_to_fit();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimLeftInplace(std::string& str, bool fast)
+{
+	if (size_t startPos = FindFirstNotSpace(str))
+	{
+		if (startPos != str.npos)
+			str.erase(0, startPos);
+		else
+			str.clear();
+
+		if (!fast)
+			str.shrink_to_fit();
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimLeftInplace(std::wstring& str, bool fast)
+{
+	if (size_t startPos = FindFirstNotSpace(str))
+	{
+		if (startPos != str.npos)
+			str.erase(0, startPos);
+		else
+			str.clear();
+
+		if (!fast)
+			str.shrink_to_fit();
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimRightInplace(std::string& str, bool fast)
+{
+	size_t endPos = FindLastNotSpace(str);
+
+	if (endPos == str.npos)
+		str.clear();
+	else if (endPos + 1 < str.size())
+		str.erase(endPos + 1);
+	else
+		return;
+
+	if (!fast)
+		str.shrink_to_fit();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void TrimRightInplace(std::wstring& str, bool fast)
+{
+	size_t endPos = FindLastNotSpace(str);
+
+	if (endPos == str.npos)
+		str.clear();
+	else if (endPos + 1 < str.size())
+		str.erase(endPos + 1);
+	else
+		return;
+
+	if (!fast)
+		str.shrink_to_fit();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 //   Конвертация строк Ansi/UTF-8/Wide
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
