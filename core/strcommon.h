@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2019-2021 Dmitry Maslov
+// Copyright (C) 2019-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -119,18 +119,18 @@ using WZStringView = BasicZStringView<wchar_t>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//   ZString - расширенная версия BasicZStringView с возможностью инициализации из std::[w]string_view
+//   ZExStringView - расширенная версия BasicZStringView с возможностью инициализации из std::[w]string_view
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Класс ZString имеет внутренний буфер небольшого размера (задаётся параметром ssoSize шаблона), в который может быть
-// помещена строка при инициализации из std::[w]string_view или пары <указатель, длина>. Если эта строка исходного вью
-// длиннее, чем ssoSize, то в куче выделяется массив нужной длины и строка копируется в него. При инициализации из
-// указателя или строки std::[w]string буфер не используется (в этом случае ZString работает как BasicZStringView)
+// Класс ZExStringView имеет внутренний буфер небольшого размера (задаётся параметром ssoSize шаблона), в который может быть
+// помещена строка при инициализации из std::[w]string_view или пары <указатель, длина>. Если размер этой строки больше или
+// равен ssoSize символов, то в куче выделяется массив нужной длины и строка копируется в него. При инициализации из указателя
+// или строки std::[w]string буфер не используется (в этом случае поведение ZExStringView не отличается от BasicZStringView)
 
 //--------------------------------------------------------------------------------------------------------------------------------
 template<class CharT, size_t ssoSize = 16>
-class ZString : public BasicZStringView<CharT>
+class ZExStringView : public BasicZStringView<CharT>
 {
 	static_assert(ssoSize >= 8, "SSO buffer's size must be >= 8");
 
@@ -139,39 +139,47 @@ public:
 	using size_type = size_t;
 
 	// Инициализирует view пустой null-terminated строкой
-	constexpr ZString() noexcept
+	constexpr ZExStringView() noexcept
+		: m_Buffer(nullptr)
 	{
-		m_Buffer = nullptr;
 	}
 
-	// При инициализации из другого view мы выполняем глубокое копирование с выделением памяти
-	// при необходимости. После инициализации объект that никак не будет связан с нашим view
-	ZString(const ZString& that)
+	// При инициализации из другого объекта ZExStringView, если строка находится в его буфере, мы выполняем глубокое
+	// копирование с выделением памяти при необходимости. После инициализации объект that не будет связан с нашим view
+	ZExStringView(const ZExStringView& that)
 		: Base(that)
+		, m_Buffer(nullptr)
 	{
-		m_Buffer = nullptr;
 		if (Base::m_Data == that.m_Inner || that.m_Buffer)
 			Base::m_Data = InitCopy(Base::m_Data, Base::m_Size);
 	}
 
-	ZString(ZString&& that) noexcept
+	ZExStringView(ZExStringView&& that) noexcept
 		: Base(false)
 	{
 		that.MoveTo(*this);
 	}
 
+	// При инициализации из вью BasicZStringView инициализируем
+	// только базовый класс с помощью конструктора копирования
+	constexpr ZExStringView(BasicZStringView<CharT> that) noexcept
+		: Base(that)
+		, m_Buffer(nullptr)
+	{
+	}
+
 	// Инициализирует view из указателя на null-terminated строку, в том числе из строкового
 	// литерала (что обходится очень дёшево). Для обычных указателей вычисляется длина строки
-	constexpr ZString(const_pointer str) noexcept
+	constexpr ZExStringView(const_pointer str) noexcept
 		: Base(str)
+		, m_Buffer(nullptr)
 	{
-		m_Buffer = nullptr;
 	}
 
 	// Инициализирует view из указателя и количества символов. Как и при иницилизации из std::[w]string_view
 	// приводит к копированию символов (во внутренний буфер, если строка короче ssoSize) и выделению памяти
 	// в куче (если длина исходной строки равна ssoSize символов или больше)
-	ZString(const_pointer str, size_type count)
+	ZExStringView(const_pointer str, size_type count)
 		: Base(InitCopy(str, count), count)
 	{
 	}
@@ -179,26 +187,26 @@ public:
 	// Инициализирует view из std::[w]string_view. Самый дорогой способ инициализации, который всегда
 	// приводит к копированию символов (во внутренний буфер, если строка короче ssoSize) и выделению
 	// памяти в куче (если длина исходной строки равна ssoSize символов или больше)
-	explicit ZString(std::basic_string_view<CharT> str)
-		: ZString(str.data(), str.size())
+	explicit ZExStringView(std::basic_string_view<CharT> str)
+		: ZExStringView(str.data(), str.size())
 	{
 	}
 
 	// Инициализирует view из строки std::[w]string (обходится очень дёшево)
-	ZString(const std::basic_string<CharT>& str) noexcept
+	ZExStringView(const std::basic_string<CharT>& str) noexcept
 		: Base(str)
+		, m_Buffer(nullptr)
 	{
-		m_Buffer = nullptr;
 	}
 
-	~ZString() noexcept
+	~ZExStringView() noexcept
 	{
 		Tidy();
 	}
 
 	// При копировании из другого view мы выполняем глубокое копирование с выделением памяти
 	// при необходимости. После копирования объект that никак не будет связан с нашим view
-	ZString& operator =(const ZString& that)
+	ZExStringView& operator =(const ZExStringView& that)
 	{
 		if (this != &that)
 		{
@@ -217,7 +225,7 @@ public:
 		return *this;
 	}
 
-	ZString& operator =(ZString&& that) noexcept
+	ZExStringView& operator =(ZExStringView&& that) noexcept
 	{
 		if (this != &that)
 		{
@@ -227,7 +235,16 @@ public:
 		return *this;
 	}
 
-	ZString& operator =(const_pointer str)
+	ZExStringView& operator =(BasicZStringView<CharT> that) noexcept
+	{
+		Tidy();
+		Base::operator =(that);
+		m_Buffer = nullptr;
+
+		return *this;
+	}
+
+	ZExStringView& operator =(const_pointer str) noexcept
 	{
 		Tidy();
 		Base::m_Data = str;
@@ -237,7 +254,7 @@ public:
 		return *this;
 	}
 
-	ZString& operator =(std::basic_string_view<CharT> str)
+	ZExStringView& operator =(std::basic_string_view<CharT> str)
 	{
 		auto oldBuffer = m_Buffer;
 		const size_type newSize = str.size();
@@ -249,7 +266,7 @@ public:
 		return *this;
 	}
 
-	ZString& operator =(const std::basic_string<CharT>& str) noexcept
+	ZExStringView& operator =(const std::basic_string<CharT>& str) noexcept
 	{
 		Tidy();
 		Base::m_Data = str.c_str();
@@ -281,7 +298,7 @@ protected:
 		return out;
 	}
 
-	AML_NOINLINE void MoveTo(ZString& dest) const noexcept
+	AML_NOINLINE void MoveTo(ZExStringView& dest) noexcept
 	{
 		dest.m_Size = Base::m_Size;
 		if (Base::m_Data != m_Inner)

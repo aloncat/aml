@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -267,7 +267,7 @@ bool FileSystem::MakeDirectory(WZStringView path, bool createAll)
 		// Если в оставшемся пути есть имя директории, пытаемся создать её
 		if (pos && p[pos - 1] != '?' && p[pos - 1] != ':')
 		{
-			ZString<wchar_t, 80> prePath(p, pos);
+			ZExStringView<wchar_t, 80> prePath(p, pos);
 			return MakeDirectory(prePath, true) && ::CreateDirectoryW(longPath.first, nullptr);
 		}
 	}

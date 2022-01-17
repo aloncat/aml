@@ -187,7 +187,7 @@ AML_NOINLINE void DebugHelper::DebugOutput(std::string_view msg)
 		DebugHelper& instance = Instance();
 		if (instance.m_IsDebugOutputEnabled && !msg.empty())
 		{
-			ZString<char, 1024> text(msg);
+			ZExStringView<char, 1024> text(msg);
 			thread::Lock lock(instance.m_CS);
 			::OutputDebugStringA(text.c_str());
 		}
@@ -342,8 +342,8 @@ void DebugHelper::ShowErrorMsgBox(std::wstring_view msgText, std::wstring_view t
 		title = L"Error";
 
 	#if AML_OS_WINDOWS
-		ZString<wchar_t, 120> zTitle(title);
-		ZString<wchar_t, 840> zMsgText(msgText);
+		ZExStringView<wchar_t, 120> zTitle(title);
+		ZExStringView<wchar_t, 840> zMsgText(msgText);
 		::MessageBoxW(nullptr, zMsgText.c_str(), zTitle.c_str(), MB_ICONERROR | MB_OK);
 	#else
 		#error Not implemented
