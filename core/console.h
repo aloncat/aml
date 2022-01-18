@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -77,7 +77,7 @@ protected:
 	};
 
 	void InitMainCS();
-	void InitKeyTTA();
+	void InitKeyTT();
 
 	void SetColor(int color);
 
@@ -86,7 +86,7 @@ protected:
 
 protected:
 	ConsoleInfo m_Info;
-	uint8_t m_KeyTTA[256];						// Таблица трансляции кодов виртуальных клавиш
+	uint8_t m_KeyTT[256];						// Таблица трансляции кодов виртуальных клавиш
 	std::deque<KeyEvent> m_InputEvents;			// Буфер событий ввода
 
 	int m_TextColor = -1;						// Текущий цвет текста
