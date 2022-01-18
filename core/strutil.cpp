@@ -8,6 +8,8 @@
 #include "array.h"
 #include "winapi.h"
 
+#include <ctype.h>
+
 namespace util {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -23,6 +25,248 @@ const std::string EmptyStringContainer::s_String;
 const std::wstring EmptyStringContainer::s_WString;
 
 const EmptyStringContainer EMPTY;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Функции преобразования регистра
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+const uint8_t loCaseTT[256] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+	32, 32, 32 };
+
+const uint8_t upCaseTT[256] = {
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+	32, 32, 32 };
+
+#if AML_OS_WINDOWS
+	#pragma warning(push)
+	#pragma warning(disable: 4996)
+#endif
+
+//--------------------------------------------------------------------------------------------------------------------------------
+static inline char* Strlwr(char* str, bool useLocale)
+{
+	if (useLocale)
+	{
+		#if AML_OS_WINDOWS
+			// Эта функция работает почти вдвое быстрее цикла с вызовом tolower в
+			// каждой итерации (при условии, что локаль программы не изменялась)
+			return _strlwr(str);
+		#else
+			for (char* p = str; *p; ++p)
+			{
+				unsigned char c = *p;
+				*p = static_cast<char>(tolower(c));
+			}
+			return str;
+		#endif
+	}
+
+	unsigned c;
+	for (char* p = str;; ++p)
+	{
+		c = static_cast<unsigned char>(*p);
+		if (c == 0)
+			return str;
+
+		c += loCaseTT[c];
+		*p = static_cast<char>(c);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+static inline char* Strupr(char* str, bool useLocale)
+{
+	if (useLocale)
+	{
+		#if AML_OS_WINDOWS
+			// Эта функция работает почти вдвое быстрее цикла с вызовом toupper в
+			// каждой итерации (при условии, что локаль программы не изменялась)
+			return _strupr(str);
+		#else
+			for (char* p = str; *p; ++p)
+			{
+				unsigned char c = *p;
+				*p = static_cast<char>(toupper(c));
+			}
+			return str;
+		#endif
+	}
+
+	unsigned c;
+	for (char* p = str;; ++p)
+	{
+		c = static_cast<unsigned char>(*p);
+		if (c == 0)
+			return str;
+
+		c -= upCaseTT[c];
+		*p = static_cast<char>(c);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+static inline wchar_t* Wcslwr(wchar_t* str, bool useLocale)
+{
+	if (useLocale)
+	{
+		#if AML_OS_WINDOWS
+			// Эта функция работает в ~4 раза быстрее цикла с вызовом towlower в
+			// каждой итерации (при условии, что локаль программы не изменялась)
+			return _wcslwr(str);
+		#else
+			for (wchar_t* p = str; *p; ++p)
+				*p = static_cast<wchar_t>(towlower(*p));
+			return str;
+		#endif
+	}
+
+	for (wchar_t* p = str;; ++p)
+	{
+		unsigned c = *p;
+		if (c == 0)
+			return str;
+
+		if (c <= 0x7f)
+			c += loCaseTT[c];
+		*p = static_cast<wchar_t>(c);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+static inline wchar_t* Wcsupr(wchar_t* str, bool useLocale)
+{
+	if (useLocale)
+	{
+		#if AML_OS_WINDOWS
+			// Эта функция работает в ~4 раза быстрее цикла с вызовом towupper в
+			// каждой итерации (при условии, что локаль программы не изменялась)
+			return _wcsupr(str);
+		#else
+			for (wchar_t* p = str; *p; ++p)
+				*p = static_cast<wchar_t>(towupper(*p));
+			return str;
+		#endif
+	}
+
+	for (wchar_t* p = str;; ++p)
+	{
+		unsigned c = *p;
+		if (c == 0)
+			return str;
+
+		if (c <= 0x7f)
+			c -= upCaseTT[c];
+		*p = static_cast<wchar_t>(c);
+	}
+}
+
+#if AML_OS_WINDOWS
+	#pragma warning(pop)
+#endif
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::string LoCase(std::string_view str, bool noLocale)
+{
+	const size_t len = str.size();
+	if (!len)
+		return std::string();
+
+	SmartArray<char, 512> buffer(len + 1);
+	memcpy(buffer, str.data(), len);
+	buffer[len] = 0;
+
+	return std::string(Strlwr(buffer, !noLocale), len);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring LoCase(std::wstring_view str, bool noLocale)
+{
+	const size_t len = str.size();
+	if (!len)
+		return std::wstring();
+
+	SmartArray<wchar_t, 512> buffer(len + 1);
+	memcpy(buffer, str.data(), len * sizeof(wchar_t));
+	buffer[len] = 0;
+
+	return std::wstring(Wcslwr(buffer, !noLocale), len);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::string UpCase(std::string_view str, bool noLocale)
+{
+	const size_t len = str.size();
+	if (!len)
+		return std::string();
+
+	SmartArray<char, 512> buffer(len + 1);
+	memcpy(buffer, str.data(), len);
+	buffer[len] = 0;
+
+	return std::string(Strupr(buffer, !noLocale), len);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring UpCase(std::wstring_view str, bool noLocale)
+{
+	const size_t len = str.size();
+	if (!len)
+		return std::wstring();
+
+	SmartArray<wchar_t, 512> buffer(len + 1);
+	memcpy(buffer, str.data(), len * sizeof(wchar_t));
+	buffer[len] = 0;
+
+	return std::wstring(Wcsupr(buffer, !noLocale), len);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void LoCaseInplace(std::string& str, bool noLocale)
+{
+	if (const size_t len = str.size())
+	{
+		SmartArray<char, 512> buffer(len + 1, str.c_str());
+		str.assign(Strlwr(buffer, !noLocale), len);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void LoCaseInplace(std::wstring& str, bool noLocale)
+{
+	if (const size_t len = str.size())
+	{
+		SmartArray<wchar_t, 512> buffer(len + 1, str.c_str());
+		str.assign(Wcslwr(buffer, !noLocale), len);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void UpCaseInplace(std::string& str, bool noLocale)
+{
+	if (const size_t len = str.size())
+	{
+		SmartArray<char, 512> buffer(len + 1, str.c_str());
+		str.assign(Strupr(buffer, !noLocale), len);
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void UpCaseInplace(std::wstring& str, bool noLocale)
+{
+	if (const size_t len = str.size())
+	{
+		SmartArray<wchar_t, 512> buffer(len + 1, str.c_str());
+		str.assign(Wcsupr(buffer, !noLocale), len);
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
