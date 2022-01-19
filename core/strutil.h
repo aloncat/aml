@@ -76,13 +76,12 @@ AML_STRCMP_OVERLOADS(StrCmp, wchar_t)
 // идентично StrCmp. Если строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт
 // отрицательное число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
 
-// TODO: нужна реализация для остальных функций
 int StrInsCmp(const char* strA, const char* strB);
 int StrInsCmp(const wchar_t* strA, const wchar_t* strB);
-//int StrInsCmp(std::string_view strA, std::string_view strB);
-//int StrInsCmp(std::wstring_view strA, std::wstring_view strB);
-//int StrInsCmp(const std::string& strA, const std::string& strB);
-//int StrInsCmp(const std::wstring& strA, const std::wstring& strB);
+int StrInsCmp(std::string_view strA, std::string_view strB);
+int StrInsCmp(std::wstring_view strA, std::wstring_view strB);
+int StrInsCmp(const std::string& strA, const std::string& strB);
+int StrInsCmp(const std::wstring& strA, const std::wstring& strB);
 
 AML_STRCMP_OVERLOADS(StrInsCmp, char)
 AML_STRCMP_OVERLOADS(StrInsCmp, wchar_t)
@@ -122,13 +121,12 @@ AML_STRCMP_OVERLOADS(StrCaseCmp, wchar_t)
 // строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт отрицательное
 // число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
 
-// TODO: нужна реализация для остальных функций
 int StrNCmp(const char* strA, const char* strB, size_t count);
 int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count);
-//int StrNCmp(std::string_view strA, std::string_view strB, size_t count);
-//int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
-//int StrNCmp(const std::string& strA, const std::string& strB, size_t count);
-//int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
+int StrNCmp(std::string_view strA, std::string_view strB, size_t count);
+int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
+int StrNCmp(const std::string& strA, const std::string& strB, size_t count);
+int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
 
 AML_STRNCMP_OVERLOADS(StrNCmp, char)
 AML_STRNCMP_OVERLOADS(StrNCmp, wchar_t)
@@ -145,13 +143,12 @@ AML_STRNCMP_OVERLOADS(StrNCmp, wchar_t)
 // одна или обе строки длиннее count символов), то функция вернёт 0. Если строка "A" меньше строки "B", функция
 // вернёт отрицательное число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
 
-// TODO: нужна реализация для остальных функций
 int StrNInsCmp(const char* strA, const char* strB, size_t count);
 int StrNInsCmp(const wchar_t* strA, const wchar_t* strB, size_t count);
-//int StrNInsCmp(std::string_view strA, std::string_view strB, size_t count);
-//int StrNInsCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
-//int StrNInsCmp(const std::string& strA, const std::string& strB, size_t count);
-//int StrNInsCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
+int StrNInsCmp(std::string_view strA, std::string_view strB, size_t count);
+int StrNInsCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
+int StrNInsCmp(const std::string& strA, const std::string& strB, size_t count);
+int StrNInsCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
 
 AML_STRNCMP_OVERLOADS(StrNInsCmp, char)
 AML_STRNCMP_OVERLOADS(StrNInsCmp, wchar_t)
@@ -242,6 +239,34 @@ inline int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
 {
 	// TODO: см. комментарий к StrCmp
 	return wcsncmp(strA, strB, count);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(std::string_view strA, std::string_view strB, size_t count)
+{
+	// TODO: см. комментарий к соответствующей функции StrCmp
+	return strA.compare(0, count, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count)
+{
+	// TODO: см. комментарий к соответствующей функции StrCmp
+	return strA.compare(0, count, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(const std::string& strA, const std::string& strB, size_t count)
+{
+	// TODO: см. комментарий к соответствующей функции StrCmp
+	return strA.compare(0, count, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count)
+{
+	// TODO: см. комментарий к соответствующей функции StrCmp
+	return strA.compare(0, count, strB);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

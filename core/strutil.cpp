@@ -92,6 +92,82 @@ int StrInsCmp(const wchar_t* strA, const wchar_t* strB)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
+static int StrInsCmpImpl(const char* strA, const char* strB, size_t count)
+{
+	if (!count)
+		return 0;
+
+	int a, b;
+	do {
+		a = static_cast<unsigned char>(*strA++);
+		a += caseTT::down[a];
+		b = static_cast<unsigned char>(*strB++);
+		b += caseTT::down[b];
+	} while (a == b && --count);
+	return a - b;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+static int StrInsCmpImpl(const wchar_t* strA, const wchar_t* strB, size_t count)
+{
+	// См. комментарий к функции StrInsCmp(wchar_t, wchar_t)
+	static_assert(std::is_unsigned_v<wchar_t> || sizeof(wchar_t) == sizeof(unsigned),
+		"Type wchar_t must be unsigned or same-sized as unsigned (int) type");
+
+	if (!count)
+		return 0;
+
+	unsigned a, b;
+	do {
+		a = *strA++;
+		if (a <= 0x7f)
+			a += caseTT::down[a];
+		b = *strB++;
+		if (b <= 0x7f)
+			b += caseTT::down[b];
+	} while (--count && a == b);
+
+	return (sizeof(wchar_t) < sizeof(a)) ? static_cast<int>(a - b) :
+		(a == b) ? 0 : (a < b) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class StringViewIsh>
+static int StrInsCmpImpl(const StringViewIsh& strA, const StringViewIsh& strB)
+{
+	const size_t sizeA = strA.size();
+	const size_t sizeB = strB.size();
+
+	const size_t count = (sizeA < sizeB) ? sizeA : sizeB;
+	int result = StrInsCmpImpl(strA.data(), strB.data(), count);
+	return (result || sizeA == sizeB) ? result : (sizeA < sizeB) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(std::string_view strA, std::string_view strB)
+{
+	return StrInsCmpImpl(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(std::wstring_view strA, std::wstring_view strB)
+{
+	return StrInsCmpImpl(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(const std::string& strA, const std::string& strB)
+{
+	return StrInsCmpImpl(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(const std::wstring& strA, const std::wstring& strB)
+{
+	return StrInsCmpImpl(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
 int StrCaseCmp(const char* strA, const char* strB)
 {
 	#if AML_OS_WINDOWS
@@ -134,7 +210,7 @@ int StrNInsCmp(const char* strA, const char* strB, size_t count)
 //--------------------------------------------------------------------------------------------------------------------------------
 int StrNInsCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
 {
-	// См. комментарий к функции StrInsCmp
+	// См. комментарий к функции StrInsCmp(wchar_t, wchar_t)
 	static_assert(std::is_unsigned_v<wchar_t> || sizeof(wchar_t) == sizeof(unsigned),
 		"Type wchar_t must be unsigned or same-sized as unsigned (int) type");
 
@@ -153,6 +229,47 @@ int StrNInsCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
 
 	return (sizeof(wchar_t) < sizeof(a)) ? static_cast<int>(a - b) :
 		(a == b) ? 0 : (a < b) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+template<class StringViewIsh>
+static int StrNInsCmpImpl(const StringViewIsh& strA, const StringViewIsh& strB, size_t count)
+{
+	const size_t sizeA = strA.size();
+	const size_t sizeB = strB.size();
+
+	if (count <= sizeA && count <= sizeB)
+	{
+		return StrInsCmpImpl(strA.data(), strB.data(), count);
+	}
+
+	count = (sizeA < sizeB) ? sizeA : sizeB;
+	int result = StrInsCmpImpl(strA.data(), strB.data(), count);
+	return (result || sizeA == sizeB) ? result : (sizeA < sizeB) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(std::string_view strA, std::string_view strB, size_t count)
+{
+	return StrNInsCmpImpl(strA, strB, count);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(std::wstring_view strA, std::wstring_view strB, size_t count)
+{
+	return StrNInsCmpImpl(strA, strB, count);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(const std::string& strA, const std::string& strB, size_t count)
+{
+	return StrNInsCmpImpl(strA, strB, count);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(const std::wstring& strA, const std::wstring& strB, size_t count)
+{
+	return StrNInsCmpImpl(strA, strB, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
