@@ -28,22 +28,162 @@ const EmptyStringContainer EMPTY;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//   Функции преобразования регистра
+//   Вспомогательные lookup таблицы для функций Str*InsCmp, LoCase* и UpCase*
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const uint8_t loCaseTT[256] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32 };
+//--------------------------------------------------------------------------------------------------------------------------------
+struct caseTT final
+{
+	// Lookup таблица для преобразования латинских букв нижнего регистра к верхнему (вычитание). NB: первые
+	// 32 байта нулевые, далее значения совпадают с началом массива down: значение 0x20 в индексах 0x61-0x7a
+	static inline const uint8_t up[32] = {};
 
-const uint8_t upCaseTT[256] = {
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
-	32, 32, 32 };
+	// Lookup таблица для преобразования латинских букв верхнего регистра к нижнему (сложение).
+	// NB: все байты массива равны 0, кроме индексов 0x41-0x5a, в которых значение равно 0x20
+	static inline const uint8_t down[256] = {
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+		32, 32, 32
+	};
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(const char* strA, const char* strB)
+{
+	int a, b;
+	do {
+		a = static_cast<unsigned char>(*strA++);
+		a += caseTT::down[a];
+		b = static_cast<unsigned char>(*strB++);
+		b += caseTT::down[b];
+	} while (b && a == b);
+	return a - b;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrInsCmp(const wchar_t* strA, const wchar_t* strB)
+{
+	// В целях оптимизации мы полагаем, что тип wchar_t беззнаковый. Если это не так и при
+	// этом размер типа wchar_t меньше размера переменных a и b, то функция может работать
+	// некорректно, если строки содержат символы, у которых значения старших битов равны 1
+	static_assert(std::is_unsigned_v<wchar_t> || sizeof(wchar_t) == sizeof(unsigned),
+		"Type wchar_t must be unsigned or same-sized as unsigned (int) type");
+
+	unsigned a, b;
+	do {
+		a = *strA++;
+		if (a <= 0x7f)
+			a += caseTT::down[a];
+		b = *strB++;
+		if (b <= 0x7f)
+			b += caseTT::down[b];
+	} while (a && a == b);
+
+	return (sizeof(wchar_t) < sizeof(a)) ? static_cast<int>(a - b) :
+		(a == b) ? 0 : (a < b) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrCaseCmp(const char* strA, const char* strB)
+{
+	#if AML_OS_WINDOWS
+		// TODO: это MS-specific функция. Возможно, её стоит заменить своей реализацией: цикл сравнения
+		// с приведением каждого символа обеих строк к нижнему регистру с помощью функции tolower
+		return _stricmp(strA, strB);
+	#else
+		return strcasecmp(strA, strB);
+	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrCaseCmp(const wchar_t* strA, const wchar_t* strB)
+{
+	#if AML_OS_WINDOWS
+		// TODO: это MS-specific функция. Возможно, её стоит заменить своей реализацией: цикл сравнения
+		// с приведением каждого символа обеих строк к нижнему регистру с помощью функции towlower
+		return _wcsicmp(strA, strB);
+	#else
+		return wcscasecmp(strA, strB);
+	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(const char* strA, const char* strB, size_t count)
+{
+	if (!count)
+		return 0;
+
+	int a, b;
+	do {
+		a = static_cast<unsigned char>(*strA++);
+		a += caseTT::down[a];
+		b = static_cast<unsigned char>(*strB++);
+		b += caseTT::down[b];
+	} while (b && a == b && --count);
+	return a - b;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNInsCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
+{
+	// См. комментарий к функции StrInsCmp
+	static_assert(std::is_unsigned_v<wchar_t> || sizeof(wchar_t) == sizeof(unsigned),
+		"Type wchar_t must be unsigned or same-sized as unsigned (int) type");
+
+	if (!count)
+		return 0;
+
+	unsigned a, b;
+	do {
+		a = *strA++;
+		if (a <= 0x7f)
+			a += caseTT::down[a];
+		b = *strB++;
+		if (b <= 0x7f)
+			b += caseTT::down[b];
+	} while (--count && a && a == b);
+
+	return (sizeof(wchar_t) < sizeof(a)) ? static_cast<int>(a - b) :
+		(a == b) ? 0 : (a < b) ? -1 : 1;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNCaseCmp(const char* strA, const char* strB, size_t count)
+{
+	#if AML_OS_WINDOWS
+		// TODO: это MS-specific функция. Возможно, её стоит заменить своей реализацией: цикл сравнения
+		// с приведением каждого символа обеих строк к нижнему регистру с помощью функции tolower
+		return _strnicmp(strA, strB, count);
+	#else
+		return strncasecmp(strA, strB, count);
+	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+int StrNCaseCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
+{
+	#if AML_OS_WINDOWS
+		// TODO: это MS-specific функция. Возможно, её стоит заменить своей реализацией: цикл сравнения
+		// с приведением каждого символа обеих строк к нижнему регистру с помощью функции towlower
+		return _wcsnicmp(strA, strB, count);
+	#else
+		return wcsncasecmp(strA, strB, count);
+	#endif
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Функции преобразования регистра
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if AML_OS_WINDOWS
 	#pragma warning(push)
@@ -76,7 +216,7 @@ static inline char* Strlwr(char* str, bool useLocale)
 		if (c == 0)
 			return str;
 
-		c += loCaseTT[c];
+		c += caseTT::down[c];
 		*p = static_cast<char>(c);
 	}
 }
@@ -107,7 +247,7 @@ static inline char* Strupr(char* str, bool useLocale)
 		if (c == 0)
 			return str;
 
-		c -= upCaseTT[c];
+		c -= caseTT::up[c];
 		*p = static_cast<char>(c);
 	}
 }
@@ -135,7 +275,7 @@ static inline wchar_t* Wcslwr(wchar_t* str, bool useLocale)
 			return str;
 
 		if (c <= 0x7f)
-			c += loCaseTT[c];
+			c += caseTT::down[c];
 		*p = static_cast<wchar_t>(c);
 	}
 }
@@ -163,7 +303,7 @@ static inline wchar_t* Wcsupr(wchar_t* str, bool useLocale)
 			return str;
 
 		if (c <= 0x7f)
-			c -= upCaseTT[c];
+			c -= caseTT::up[c];
 		*p = static_cast<wchar_t>(c);
 	}
 }

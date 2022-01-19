@@ -32,6 +32,220 @@ using IsStringViewIsh = std::enable_if_t<std::conjunction_v<
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+//   Сравнение строк (вспомогательные макросы)
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define AML_STRCMP_OVERLOADS(FN, T) \
+	inline int FN(const std::basic_string<T>& strA, const T* strB) { return FN(strA.c_str(), strB); } \
+	inline int FN(const T* strA, const std::basic_string<T>& strB) { return FN(strA, strB.c_str()); }
+
+#define AML_STRNCMP_OVERLOADS(FN, T) \
+	inline int FN(const std::basic_string<T>& strA, const T* strB, size_t count) { return FN(strA.c_str(), strB, count); } \
+	inline int FN(const T* strA, const std::basic_string<T>& strB, size_t count) { return FN(strA, strB.c_str(), count); }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrCmp идентична стандартным функциям strcmp/wcscmp, лексикографически сравнивает строку "A" со
+// строкой "B". Если строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт
+// отрицательное число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
+
+int StrCmp(const char* strA, const char* strB);
+int StrCmp(const wchar_t* strA, const wchar_t* strB);
+int StrCmp(std::string_view strA, std::string_view strB);
+int StrCmp(std::wstring_view strA, std::wstring_view strB);
+int StrCmp(const std::string& strA, const std::string& strB);
+int StrCmp(const std::wstring& strA, const std::wstring& strB);
+
+AML_STRCMP_OVERLOADS(StrCmp, char)
+AML_STRCMP_OVERLOADS(StrCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrInsCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrInsCmp похожа на POSIX-функции strcasecmp/wcscasecmp, лексикографически сравнивает строку "A"
+// со строкой "B" без учёта регистра, но работает так, как если бы была установлена "C" локаль, т.е. регистр
+// игнорируется только для латинских букв 'a'..'z' и 'A'..'Z', а для остальных символов поведение этой функции
+// идентично StrCmp. Если строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт
+// отрицательное число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
+
+// TODO: нужна реализация для остальных функций
+int StrInsCmp(const char* strA, const char* strB);
+int StrInsCmp(const wchar_t* strA, const wchar_t* strB);
+//int StrInsCmp(std::string_view strA, std::string_view strB);
+//int StrInsCmp(std::wstring_view strA, std::wstring_view strB);
+//int StrInsCmp(const std::string& strA, const std::string& strB);
+//int StrInsCmp(const std::wstring& strA, const std::wstring& strB);
+
+AML_STRCMP_OVERLOADS(StrInsCmp, char)
+AML_STRCMP_OVERLOADS(StrInsCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrCaseCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrCaseCmp идентична POSIX-функциям strcasecmp/wcscasecmp, лексикографически сравнивает строку "A"
+// со строкой "B" без учёта регистра, используя текущую локаль. Для этого соответствующие символы обеих строк
+// сначала приводятся к нижнему регистру с помощью функции tolower/towlower, после чего символы сравниваются.
+// Если строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт отрицательное
+// число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
+
+// TODO: нужна реализация для остальных функций
+int StrCaseCmp(const char* strA, const char* strB);
+int StrCaseCmp(const wchar_t* strA, const wchar_t* strB);
+//int StrCaseCmp(std::string_view strA, std::string_view strB);
+//int StrCaseCmp(std::wstring_view strA, std::wstring_view strB);
+//int StrCaseCmp(const std::string& strA, const std::string& strB);
+//int StrCaseCmp(const std::wstring& strA, const std::wstring& strB);
+
+AML_STRCMP_OVERLOADS(StrCaseCmp, char)
+AML_STRCMP_OVERLOADS(StrCaseCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrNCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrNCmp идентична стандартным функциям strncmp/wcsncmp, лексикографически сравнивает строку "A" со
+// строкой "B", сравнивая не более count их первых символов. Т.е. если длина строки "A" или строки "B" больше
+// count, то функция считает, что соответствующая строка содержит только count её первых символов. Если
+// строки одинаковы, функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт отрицательное
+// число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
+
+// TODO: нужна реализация для остальных функций
+int StrNCmp(const char* strA, const char* strB, size_t count);
+int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count);
+//int StrNCmp(std::string_view strA, std::string_view strB, size_t count);
+//int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
+//int StrNCmp(const std::string& strA, const std::string& strB, size_t count);
+//int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
+
+AML_STRNCMP_OVERLOADS(StrNCmp, char)
+AML_STRNCMP_OVERLOADS(StrNCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrNInsCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrNInsCmp идентична функции StrInsCmp с той лишь разницей, что сравнивает не более count первых символов
+// указанных строк. Функция сравнивает строки лексикографически без учёта регистра, работая так, как если бы была
+// установлена "C" локаль. Если строки одинаковы (совпадают до регистра первые count символов строк в случае, когда
+// одна или обе строки длиннее count символов), то функция вернёт 0. Если строка "A" меньше строки "B", функция
+// вернёт отрицательное число <=-1. Если строка "A" больше строки "B", то функция вернёт положительное число >=1
+
+// TODO: нужна реализация для остальных функций
+int StrNInsCmp(const char* strA, const char* strB, size_t count);
+int StrNInsCmp(const wchar_t* strA, const wchar_t* strB, size_t count);
+//int StrNInsCmp(std::string_view strA, std::string_view strB, size_t count);
+//int StrNInsCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
+//int StrNInsCmp(const std::string& strA, const std::string& strB, size_t count);
+//int StrNInsCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
+
+AML_STRNCMP_OVERLOADS(StrNInsCmp, char)
+AML_STRNCMP_OVERLOADS(StrNInsCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк: StrNCaseCmp
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Функция StrNCaseCmp идентична функции StrCaseCmp с той лишь разницей, что сравнивает не более count первых символов
+// указанных строк. Функция сравнивает строки лексикографически без учёта регистра, используя текущую локаль. Если строки
+// одинаковы (совпадают до регистра первые count символов строк в случае, когда одна или обе строки длиннее count символов),
+// то функция вернёт 0. Если строка "A" меньше строки "B", функция вернёт отрицательное число <=-1. Если строка "A" больше
+// строки "B", то функция вернёт положительное число >=1
+
+// TODO: нужна реализация для остальных функций
+int StrNCaseCmp(const char* strA, const char* strB, size_t count);
+int StrNCaseCmp(const wchar_t* strA, const wchar_t* strB, size_t count);
+//int StrNCaseCmp(std::string_view strA, std::string_view strB, size_t count);
+//int StrNCaseCmp(std::wstring_view strA, std::wstring_view strB, size_t count);
+//int StrNCaseCmp(const std::string& strA, const std::string& strB, size_t count);
+//int StrNCaseCmp(const std::wstring& strA, const std::wstring& strB, size_t count);
+
+AML_STRNCMP_OVERLOADS(StrNCaseCmp, char)
+AML_STRNCMP_OVERLOADS(StrNCaseCmp, wchar_t)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   Сравнение строк (реализация)
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(const char* strA, const char* strB)
+{
+	// TODO: возможно, есть смысл попытаться написать свою реализацию этой функции (например, в случае,
+	// если строки выровнены, сравнивать по 4/8 байт за раз, что должно быть быстрее - но тут важно,
+	// как хорошо функции реализованы на других платформах, чтобы не сделать хуже)
+	return strcmp(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(const wchar_t* strA, const wchar_t* strB)
+{
+	// TODO: см. комментарий в предыдущей функции
+	return wcscmp(strA, strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(std::string_view strA, std::string_view strB)
+{
+	// NB: реализация в STL (char_traits) довольно неплоха.
+	// Можно сделать лучше, но это будет непросто
+	return strA.compare(strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(std::wstring_view strA, std::wstring_view strB)
+{
+	// NB: см. комментарий в предыдущей функции
+	return strA.compare(strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(const std::string& strA, const std::string& strB)
+{
+	// NB: см. комментарий в предыдущей функции
+	return strA.compare(strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrCmp(const std::wstring& strA, const std::wstring& strB)
+{
+	// NB: см. комментарий в предыдущей функции
+	return strA.compare(strB);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(const char* strA, const char* strB, size_t count)
+{
+	// TODO: см. комментарий к StrCmp
+	return strncmp(strA, strB, count);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
+{
+	// TODO: см. комментарий к StrCmp
+	return wcsncmp(strA, strB, count);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 //   Функции преобразования регистра
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
