@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="platrform">
+    <Filter Include="platform">
       <UniqueIdentifier>{a10dc09c-d754-41da-81a8-01d4206af118}</UniqueIdentifier>
     </Filter>
     <Filter Include="util">
@@ -16,7 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auxlib\prefix.cpp">
-      <Filter>platrform</Filter>
+      <Filter>platform</Filter>
     </ClCompile>
     <ClCompile Include="..\..\auxlib\print.cpp">
       <Filter>util</Filter>
