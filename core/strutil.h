@@ -245,28 +245,28 @@ inline int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
 inline int StrNCmp(std::string_view strA, std::string_view strB, size_t count)
 {
 	// TODO: см. комментарий к соответствующей функции StrCmp
-	return strA.compare(0, count, strB);
+	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count)
 {
 	// TODO: см. комментарий к соответствующей функции StrCmp
-	return strA.compare(0, count, strB);
+	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(const std::string& strA, const std::string& strB, size_t count)
 {
 	// TODO: см. комментарий к соответствующей функции StrCmp
-	return strA.compare(0, count, strB);
+	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count)
 {
 	// TODO: см. комментарий к соответствующей функции StrCmp
-	return strA.compare(0, count, strB);
+	return strA.compare(0, count, strB, 0, count);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
