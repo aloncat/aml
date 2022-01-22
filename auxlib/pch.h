@@ -1,11 +1,13 @@
 ﻿//∙Auxlib
-// Copyright (C) 2019-2021 Dmitry Maslov
+// Copyright (C) 2019-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
 
 #include <core/platform.h>
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
