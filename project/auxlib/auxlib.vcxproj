@@ -162,8 +162,10 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\auxlib\forward.h" />
     <ClInclude Include="..\..\auxlib\pch.h" />
     <ClInclude Include="..\..\auxlib\print.h" />
+    <ClInclude Include="..\..\auxlib\xmlwriter.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auxlib\prefix.cpp">
@@ -173,6 +175,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\..\auxlib\print.cpp" />
+    <ClCompile Include="..\..\auxlib\xmlwriter.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -4,6 +4,9 @@
     <Filter Include="platform">
       <UniqueIdentifier>{a10dc09c-d754-41da-81a8-01d4206af118}</UniqueIdentifier>
     </Filter>
+    <Filter Include="xml">
+      <UniqueIdentifier>{a0f9a655-2064-4406-ae2f-beacc021a87e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="util">
       <UniqueIdentifier>{da5e9ca9-6717-482e-9a98-ed7fc4c7c2d3}</UniqueIdentifier>
     </Filter>
@@ -13,6 +16,10 @@
     <ClInclude Include="..\..\auxlib\print.h">
       <Filter>util</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auxlib\forward.h" />
+    <ClInclude Include="..\..\auxlib\xmlwriter.h">
+      <Filter>xml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auxlib\prefix.cpp">
@@ -20,6 +27,9 @@
     </ClCompile>
     <ClCompile Include="..\..\auxlib\print.cpp">
       <Filter>util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auxlib\xmlwriter.cpp">
+      <Filter>xml</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

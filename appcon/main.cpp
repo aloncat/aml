@@ -34,7 +34,7 @@ static std::string GetBuildDateTime(const char* date, const char* time)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-int wmain(int argC, const wchar_t* argA[], const wchar_t* envA[])
+int wmain(int argCount, const wchar_t* args[], const wchar_t* envVars[])
 {
 	util::CheckMinimalRequirements();
 
