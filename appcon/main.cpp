@@ -22,7 +22,7 @@ static std::string GetBuildDateTime(const char* date, const char* time)
 	}
 
 	char dateTime[28];
-	// NB: 28 байт - мин. размер, достаточный на случай некорректных входных данных
+	// 28 байт - минимальный размер, достаточный на случай некорректных входных данных
 	sprintf_s(dateTime, util::CountOf(dateTime), "%4d-%02d-%02d ", year, month + 1, day);
 
 	if (time && *time)
@@ -38,8 +38,8 @@ int wmain(int argCount, const wchar_t* args[], const wchar_t* envVars[])
 {
 	util::CheckMinimalRequirements();
 
-	std::string buildVer = GetBuildDateTime(__DATE__, __TIME__);
-	aux::Printf("#3AML project. #7Console application sample. #8Built on %s\n", buildVer.c_str());
+	const std::string buildVersion = GetBuildDateTime(__DATE__, __TIME__);
+	aux::Printf("#3AML project. #7Console application sample. #8Built on %s\n", buildVersion.c_str());
 
 	return 0;
 }
