@@ -6,6 +6,7 @@
 
 #include <core/array.h>
 #include <core/forward.h>
+#include <core/platform.h>
 #include <core/strformat.h>
 #include <core/util.h>
 
@@ -65,6 +66,17 @@ public:
 	void SetOutput(util::File& output);
 
 protected:
+	enum DataFlags {
+		HAS_DATA = 1,	// Текущий элемент оканчивается данными
+		HAS_NEWLINE = 2	// Перед (или между) данными была новая строка
+	};
+
+	enum class EscapeSet {
+		Empty,			// Ничего не экранировать
+		AmpLtGt,		// Экранировать символы &, <, >, а также коды ниже 0x20 (кроме 0x09, 0x0a и 0x0d)
+		AmpLtGtQuot		// Экранировать символы из предыдущего набора AmpLtGt, а также двойную кавычку
+	};
+
 	struct TagInfo {
 		std::string name;
 		bool hasChildren = false;
@@ -82,9 +94,11 @@ protected:
 	bool StartAttribute(std::wstring_view name);
 	bool EndAttribute();
 
-	// Конвертирует строку str в UTF-8, используя массив m_Array, и возвращает вью на него. Если параметр
-	// sanitize == true, то выполняется экранирование (символы ', ", <, >, & и др. заменяется на "&...;"
-	std::string_view ToUtf8(std::wstring_view str, bool sanitize);
+	void InitEscapeTable();
+
+	// Конвертирует строку str в UTF-8, используя массив m_Array, и возвращает вью на него. Если значение
+	// escapeSet > EscapeSet::Empty, то все символы из указанного множества будут заменены на "&...;"
+	std::string_view ToUtf8(std::wstring_view str, EscapeSet escapeSet);
 
 protected:
 	util::File* m_Output = nullptr;		// Связанный файл
@@ -93,12 +107,13 @@ protected:
 	Array m_Array;						// Буфер для конвертации в UTF-8
 	Buffer m_Buffer;					// Буфер вывода (для формирования строк)
 	char m_Paddings[32];				// Перевод строки (\n) + символы табуляции (0x09)
+	uint8_t* m_EscapeTable = nullptr;	// Указатель на таблицу экранирования (64 элемента)
 
 	bool m_IsOutputOwned = false;		// true, если мы владеем файлом m_Output
 	bool m_NeedDeclaration = false;		// true, если нужно записать в файл пролог
 	bool m_IsTagOpened = false;			// true, если тег текущего элемента сейчас открыт
 	bool m_NeedEndTag = false;			// true, если текущему элементу требуется закрывающий тег
-	bool m_HasData = false;				// true, если текущий элемент оканчивается данными
+	uint8_t m_DataFlags = 0;			// Биты флагов DataFlags для данных текущего элемента
 };
 
 } // namespace aux
