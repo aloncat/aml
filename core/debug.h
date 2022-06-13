@@ -158,7 +158,7 @@ protected:
 	DebugHelper();
 	virtual ~DebugHelper() override;
 
-	thread::CriticalSection m_CS;
+	thrd::CriticalSection m_CS;
 	AssertHandler* m_AssertHandler = nullptr;
 	AbortHandler m_AbortHandler = nullptr;
 	bool m_IsDebugOutputEnabled = false;

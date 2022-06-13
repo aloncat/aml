@@ -1,10 +1,10 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
 
-namespace thread {
+namespace thrd {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -26,4 +26,4 @@ void CPUPause();
 // очереди на выполнение. Если таких потоков в данный момент нет, функция немедленно вернёт управление
 void Sleep(unsigned milliseconds);
 
-} // namespace thread
+} // namespace thrd

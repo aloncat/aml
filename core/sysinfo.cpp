@@ -114,7 +114,7 @@ bool SystemInfo::IsConsoleApp()
 //--------------------------------------------------------------------------------------------------------------------------------
 void SystemInfo::InitCoreCount()
 {
-	#ifdef AML_OS_WINDOWS
+	#if AML_OS_WINDOWS
 		SYSTEM_INFO sysInfo;
 		::GetSystemInfo(&sysInfo);
 		m_CoreCount.logical = sysInfo.dwNumberOfProcessors ? sysInfo.dwNumberOfProcessors : 1;

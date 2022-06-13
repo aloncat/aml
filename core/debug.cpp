@@ -188,7 +188,7 @@ AML_NOINLINE void DebugHelper::DebugOutput(std::string_view msg)
 		if (instance.m_IsDebugOutputEnabled && !msg.empty())
 		{
 			ZExStringView<char, 1024> text(msg);
-			thread::Lock lock(instance.m_CS);
+			thrd::Lock lock(instance.m_CS);
 			::OutputDebugStringA(text.c_str());
 		}
 	#else
@@ -233,7 +233,7 @@ AML_NOINLINE void DebugHelper::DebugOutput(std::wstring_view msg)
 			if (outputLen > 0)
 			{
 				buffer[outputLen] = 0;
-				thread::Lock lock(instance.m_CS);
+				thrd::Lock lock(instance.m_CS);
 				::OutputDebugStringA(buffer);
 			}
 		}

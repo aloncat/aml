@@ -72,8 +72,8 @@ protected:
 	};
 
 	struct IOLocks {
-		thread::CriticalSection input;		// Критическая секция для обработки ввода
-		thread::CriticalSection output;		// Критическая секция для обработки вывода
+		thrd::CriticalSection input;		// Критическая секция для обработки ввода
+		thrd::CriticalSection output;		// Критическая секция для обработки вывода
 	};
 
 	void InitMainCS();
@@ -94,7 +94,7 @@ protected:
 	volatile bool m_IsCtrlCPressed = false;		// true, если были нажаты Ctrl-C или Ctrl-Break
 
 	static IOLocks* s_IOLocks;					// Критические секции (ввод и вывод)
-	static thread::CriticalSection* s_MainCS;	// Основная критическая секция
+	static thrd::CriticalSection* s_MainCS;		// Основная критическая секция
 
 	static unsigned s_RefCounter;				// Счётчик существующих объектов
 	static bool s_HasAllocatedConsole;			// true, если было создано окно консоли

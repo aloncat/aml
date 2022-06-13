@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-namespace thread {
+namespace thrd {
 
 class CriticalSection;
 
@@ -93,4 +93,4 @@ private:
 	uint8_t m_InnerBuf[40];		// Локальный буфер для структуры данных критической секции
 };
 
-} // namespace thread
+} // namespace thrd

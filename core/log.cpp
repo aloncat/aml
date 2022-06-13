@@ -319,7 +319,7 @@ public:
 
 private:
 	Log& m_Log;
-	thread::CriticalSection m_CS;
+	thrd::CriticalSection m_CS;
 	std::vector<LogRecord*> m_Records;
 };
 
@@ -340,7 +340,7 @@ Log::LogRecordStack::~LogRecordStack()
 //--------------------------------------------------------------------------------------------------------------------------------
 LogRecord* Log::LogRecordStack::Get()
 {
-	thread::Lock lock(m_CS);
+	thrd::Lock lock(m_CS);
 
 	if (!m_Records.empty())
 	{
@@ -360,7 +360,7 @@ void Log::LogRecordStack::Release(LogRecord* record)
 	{
 		record->Clear();
 
-		thread::Lock lock(m_CS);
+		thrd::Lock lock(m_CS);
 		m_Records.push_back(record);
 	}
 }
@@ -494,7 +494,7 @@ void FileLog::WriteToFile(std::wstring_view text)
 		SmartArray<char, LOCAL_SIZE> buffer(bufferSize);
 		if (int len = ToUtf8(buffer, bufferSize, text); len > 0)
 		{
-			thread::Lock lock(m_CS);
+			thrd::Lock lock(m_CS);
 			m_File.Write(buffer, len);
 		}
 	}

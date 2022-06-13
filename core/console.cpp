@@ -35,7 +35,7 @@ protected:
 	static BOOL WINAPI Handler(DWORD ctrlType);
 
 	unsigned m_RefCounter = 0;			// Счетчик использования обработчика
-	thread::CriticalSection m_CS;		// Крит. секция для установки флагов
+	thrd::CriticalSection m_CS;			// Крит. секция для установки флагов
 	std::set<volatile bool*> m_Flags;	// Зарегистрированные флаги
 
 	static inline CtrlHandler* s_This;
@@ -53,7 +53,7 @@ Console::CtrlHandler::HandlerFn Console::CtrlHandler::GetHandler(volatile bool* 
 
 	if (breakFlag)
 	{
-		thread::Lock lock(s_This->m_CS);
+		thrd::Lock lock(s_This->m_CS);
 		s_This->m_Flags.insert(breakFlag);
 	}
 
@@ -69,7 +69,7 @@ void Console::CtrlHandler::ReleaseHandler(volatile bool* breakFlag)
 		if (breakFlag)
 		{
 			auto& flags = s_This->m_Flags;
-			thread::Lock lock(s_This->m_CS);
+			thrd::Lock lock(s_This->m_CS);
 			if (auto it = flags.find(breakFlag); it != flags.end())
 				flags.erase(it);
 		}
@@ -88,7 +88,7 @@ AML_NOINLINE BOOL Console::CtrlHandler::Handler(DWORD ctrlType)
 	{
 		if (s_This)
 		{
-			thread::Lock lock(s_This->m_CS);
+			thrd::Lock lock(s_This->m_CS);
 			for (auto breakFlag : s_This->m_Flags)
 				*breakFlag = true;
 		}
@@ -106,7 +106,7 @@ AML_NOINLINE BOOL Console::CtrlHandler::Handler(DWORD ctrlType)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Console::IOLocks* Console::s_IOLocks;
-thread::CriticalSection* Console::s_MainCS;
+thrd::CriticalSection* Console::s_MainCS;
 
 unsigned Console::s_RefCounter;
 bool Console::s_HasAllocatedConsole;
@@ -127,8 +127,8 @@ bool Console::IsCtrlCPressed(bool reset)
 //--------------------------------------------------------------------------------------------------------------------------------
 void Console::InitMainCS()
 {
-	static uint8_t data[sizeof(thread::CriticalSection)];
-	s_MainCS = new(data) thread::CriticalSection;
+	static uint8_t data[sizeof(thrd::CriticalSection)];
+	s_MainCS = new(data) thrd::CriticalSection;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +145,7 @@ Console::Console()
 	// В самый первый раз инициализируем основную критическую
 	// секцию; эта крит. секция никогда не будет уничтожена
 	static int initOnce = (InitMainCS(), 0);
-	thread::Lock lock(s_MainCS);
+	thrd::Lock lock(s_MainCS);
 
 	if (::GetConsoleWindow() == nullptr && ::AllocConsole())
 		s_HasAllocatedConsole = true;
@@ -202,7 +202,7 @@ Console::Console()
 //--------------------------------------------------------------------------------------------------------------------------------
 Console::~Console()
 {
-	thread::Lock lock(s_MainCS);
+	thrd::Lock lock(s_MainCS);
 
 	if (m_Info.outHandle)
 	{
@@ -244,7 +244,7 @@ void Console::Write(std::string_view str, int color)
 	if (!m_Info.outHandle || !strLen || strLen > INT_MAX)
 		return;
 
-	thread::Lock lock(s_IOLocks->output);
+	thrd::Lock lock(s_IOLocks->output);
 
 	if (m_Info.isRedirected)
 	{
@@ -269,7 +269,7 @@ void Console::Write(std::wstring_view str, int color)
 	if (!m_Info.outHandle || !strLen || strLen > INT_MAX)
 		return;
 
-	thread::Lock lock(s_IOLocks->output);
+	thrd::Lock lock(s_IOLocks->output);
 
 	if (m_Info.isRedirected)
 	{
@@ -309,7 +309,7 @@ void Console::ShowCursor(bool visible)
 //--------------------------------------------------------------------------------------------------------------------------------
 bool Console::GetInputEvent(KeyEvent& event)
 {
-	thread::Lock lock(s_IOLocks->input);
+	thrd::Lock lock(s_IOLocks->input);
 
 	PollInput(false);
 	if (!m_InputEvents.empty())
@@ -324,7 +324,7 @@ bool Console::GetInputEvent(KeyEvent& event)
 //--------------------------------------------------------------------------------------------------------------------------------
 void Console::ClearEvents()
 {
-	thread::Lock lock(s_IOLocks->input);
+	thrd::Lock lock(s_IOLocks->input);
 
 	PollInput(true);
 	m_InputEvents.clear();
@@ -444,7 +444,7 @@ void Console::PollInput(bool forcePoll)
 	if (!m_Info.inHandle)
 		return;
 
-	thread::Lock lock(s_IOLocks->input);
+	thrd::Lock lock(s_IOLocks->input);
 
 	if (CheckPollTime() || forcePoll)
 	{

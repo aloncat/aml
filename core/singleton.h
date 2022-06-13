@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -61,7 +61,7 @@ private:
 	};
 
 protected:
-	static thread::CriticalSection* s_Lock;
+	static thrd::CriticalSection* s_Lock;
 	static volatile bool s_IsFinalizing;
 
 private:
@@ -126,7 +126,7 @@ private:
 	static AML_NOINLINE T* CreateInstance()
 	{
 		Initialize();
-		thread::Lock lock(s_Lock);
+		thrd::Lock lock(s_Lock);
 
 		if (T* p = s_This.load(std::memory_order_relaxed))
 			return p;
@@ -169,7 +169,7 @@ private:
 
 	static void Destroy()
 	{
-		thread::Lock lock(s_Lock);
+		thrd::Lock lock(s_Lock);
 		if (Singleton* instance = s_This.load(std::memory_order_relaxed))
 		{
 			instance->OnDestroy();

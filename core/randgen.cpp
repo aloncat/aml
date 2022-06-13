@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -27,7 +27,7 @@ using namespace math;
 RandGen::RandGen()
 {
 	unsigned t = static_cast<unsigned>(time(nullptr));
-	static std::atomic<unsigned> seed(t + thread::GetThreadId());
+	static std::atomic<unsigned> seed(t + thrd::GetThreadId());
 
 	unsigned newSeed, oldSeed = seed.load(std::memory_order_relaxed);
 	do {

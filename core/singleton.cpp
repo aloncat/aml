@@ -12,7 +12,7 @@
 
 using namespace util;
 
-thread::CriticalSection* SingletonHolder::s_Lock;
+thrd::CriticalSection* SingletonHolder::s_Lock;
 volatile bool SingletonHolder::s_IsFinalizing;
 SingletonHolder::Item* SingletonHolder::s_ItemList;
 std::vector<void*>* SingletonHolder::s_ObjStack;
@@ -23,7 +23,7 @@ void SingletonHolder::KillAll()
 	Initialize();
 	// Так как KillAll может быть вызван любым потоком (включая ситуацию, когда другой поток в это
 	// же время инициализирует какой-либо синглтон), мы должны защитить доступ к списку s_ItemList
-	thread::Lock lock(s_Lock);
+	thrd::Lock lock(s_Lock);
 
 	for (Item* p = s_ItemList; p;)
 	{
@@ -53,17 +53,17 @@ void SingletonHolder::Initialize()
 		if (++spinCounter == 1000)
 		{
 			spinCounter = 0;
-			thread::Sleep(0);
+			thrd::Sleep(0);
 		} else
-			thread::CPUPause();
+			thrd::CPUPause();
 
 		current = 0;
 	}
 
-	static uint8_t data[sizeof(thread::CriticalSection)];
+	static uint8_t data[sizeof(thrd::CriticalSection)];
 	// Инициализируем объект критической секции. Благодаря
 	// placement new, этот объект никогда не будет разрушен
-	s_Lock = new(data) thread::CriticalSection;
+	s_Lock = new(data) thrd::CriticalSection;
 
 	initLock.store(2, std::memory_order_release);
 }
@@ -81,7 +81,7 @@ void SingletonHolder::Finalize()
 		// Захватываем критическую секцию. Пытаясь это сделать, мы дождёмся завершения инициализации
 		// синглтона другим потоком (если секция была им захвачена) и гарантируем, что другой поток
 		// не начнёт инициализацию снова до того, как мы установим флаг
-		thread::Lock lock(s_Lock);
+		thrd::Lock lock(s_Lock);
 
 		s_IsFinalizing = true;
 	}

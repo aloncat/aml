@@ -240,7 +240,7 @@ protected:
 	void WriteToFile(std::wstring_view text);
 
 protected:
-	thread::CriticalSection m_CS;
+	thrd::CriticalSection m_CS;
 	BinaryFile m_File;
 };
 
