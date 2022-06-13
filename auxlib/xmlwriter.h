@@ -100,6 +100,8 @@ protected:
 	// escapeSet > EscapeSet::Empty, то все символы из указанного множества будут заменены на "&...;"
 	std::string_view ToUtf8(std::wstring_view str, EscapeSet escapeSet);
 
+	int SanitizeArray(int fromPos, int size);
+
 protected:
 	util::File* m_Output = nullptr;		// Связанный файл
 	std::vector<TagInfo> m_NestedTags;	// Иерархия элементов
@@ -107,7 +109,7 @@ protected:
 	Array m_Array;						// Буфер для конвертации в UTF-8
 	Buffer m_Buffer;					// Буфер вывода (для формирования строк)
 	char m_Paddings[32];				// Перевод строки (\n) + символы табуляции (0x09)
-	uint8_t* m_EscapeTable = nullptr;	// Указатель на таблицу экранирования (64 элемента)
+	uint8_t* m_EscapeTable = nullptr;	// Указатель на таблицу экранирования (256 элементов)
 
 	bool m_IsOutputOwned = false;		// true, если мы владеем файлом m_Output
 	bool m_NeedDeclaration = false;		// true, если нужно записать в файл пролог

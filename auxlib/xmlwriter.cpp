@@ -20,7 +20,7 @@ XmlWriter::XmlWriter()
 	static_cast<util::MemoryFile*>(m_Output)->Open();
 
 	m_Array.Grow(2048);
-	m_Buffer.Reserve(2048);
+	m_Buffer.Reserve(1024);
 
 	memset(m_Paddings, 9, sizeof(m_Paddings));
 	m_Paddings[0] = '\n';
@@ -61,6 +61,7 @@ bool XmlWriter::StartTag(std::wstring_view name)
 	WritePadding(m_DataFlags > 0);
 	std::string utf8Name = util::ToUtf8(name);
 	m_Buffer << '<' << utf8Name;
+
 	if (!WriteFile(m_Buffer))
 		return false;
 
@@ -97,6 +98,7 @@ bool XmlWriter::EndTag()
 	{
 		m_Buffer.Append(" />\n", 4);
 	}
+
 	if (!WriteFile(m_Buffer))
 		return false;
 
@@ -227,21 +229,18 @@ bool XmlWriter::EndAttribute()
 //--------------------------------------------------------------------------------------------------------------------------------
 void XmlWriter::InitEscapeTable()
 {
-	m_EscapeTable = new uint8_t[64];
+	auto tab = new uint8_t[256];
+	m_EscapeTable = tab;
 
-	for (int i = 0; i <= 31; ++i)
-		m_EscapeTable[i] = 0xff;
+	memset(tab, 0xff, 32);
+	tab[0x09] = 0;
+	tab[0x0a] = 0;
+	tab[0x0d] = 0;
 
-	m_EscapeTable[0x09] = 0;
-	m_EscapeTable[0x0a] = 0;
-	m_EscapeTable[0x0d] = 0;
-
-	for (int i = 32; i <= 63; ++i)
-		m_EscapeTable[i] = 0;
-
-	m_EscapeTable['&'] = 1;
-	m_EscapeTable['<'] = 2;
-	m_EscapeTable['>'] = 3;
+	memset(tab + 32, 0, 256 - 32);
+	tab['&'] = 1;
+	tab['<'] = 2;
+	tab['>'] = 3;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -256,44 +255,59 @@ std::string_view XmlWriter::ToUtf8(std::wstring_view str, EscapeSet escapeSet)
 	}
 
 	// Конвертируем строку в UTF-8
-	const int size = util::ToUtf8(m_Array, m_Array.GetSize(), str);
+	int size = util::ToUtf8(m_Array, m_Array.GetSize(), str);
 
-	// Экранируем строку при необходимости
-	if (escapeSet > EscapeSet::Empty && size > 0)
+	// Экранируем строку, если нужно
+	if (escapeSet > EscapeSet::Empty)
 	{
-		util::Formatter<char, 640> fmt;
 		m_EscapeTable['"'] = (escapeSet >= EscapeSet::AmpLtGtQuot) ? 4 : 0;
-		static const char* const rep[4] = { "&amp;", "&lt;", "&gt;", "&quot;" };
 
-		int next = 0;
 		const char* p = m_Array;
+		auto escTab = m_EscapeTable;
 		for (int i = 0; i < size; ++i)
 		{
-			if (char c = p[i]; c < 64 && m_EscapeTable[c])
+			if (escTab[p[i]])
 			{
-				fmt.Append(p + next, i - next);
-				next = i + 1;
-
-				if (auto esc = m_EscapeTable[c]; esc > 4)
-				{
-					fmt << "&#" << static_cast<unsigned>(c) << ';';
-				} else
-				{
-					fmt << rep[esc - 1];
-				}
+				size = SanitizeArray(i, size);
+				break;
 			}
-		}
-
-		if (next)
-		{
-			fmt.Append(p + next, size - next);
-			const auto newSize = fmt.GetSize();
-
-			m_Array.Grow(newSize);
-			memcpy(m_Array, fmt.GetData(), newSize);
-			return { m_Array, newSize };
 		}
 	}
 
 	return { m_Array, (size > 0) ? size : 0u };
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+AML_NOINLINE int XmlWriter::SanitizeArray(int from, int size)
+{
+	util::Formatter<char, 640> fmt;
+	static const char* const rep[4] = { "&amp;", "&lt;", "&gt;", "&quot;" };
+
+	const char* p = m_Array;
+	auto escTab = m_EscapeTable;
+
+	int next = 0;
+	for (int i = from; i < size; ++i)
+	{
+		if (char c = p[i]; escTab[c])
+		{
+			fmt.Append(p + next, i - next);
+			next = i + 1;
+
+			if (auto esc = escTab[c]; esc > 4)
+			{
+				fmt << "&#" << static_cast<unsigned>(c) << ';';
+			} else
+			{
+				fmt << rep[esc - 1];
+			}
+		}
+	}
+
+	fmt.Append(p + next, size - next);
+	size_t newSize = fmt.GetSize();
+
+	m_Array.Grow(newSize);
+	memcpy(m_Array, fmt.GetData(), newSize);
+	return static_cast<int>(newSize);
 }
