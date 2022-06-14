@@ -99,3 +99,9 @@ AML_NOINLINE uint32_t RandGen::Next() noexcept
 
 	return (m_X + m_Y) ^ m_Z;
 }
+
+//--------------------------------------------------------------------------------------------------------------------------------
+uint64_t RandGen::Next64() noexcept
+{
+	return (static_cast<uint64_t>(Next()) << 32) | m_X;
+}
