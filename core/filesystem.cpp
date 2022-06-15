@@ -21,7 +21,7 @@ using namespace util;
 //--------------------------------------------------------------------------------------------------------------------------------
 struct FileSystem::Helper final
 {
-	static bool IsUNCPath(WZStringView path);
+	static bool IsUNCPath(std::wstring_view path);
 	static std::wstring GetFullUNCPath(const wchar_t* path);
 	static void MakeFullPath(std::wstring& fullPath, WZStringView path);
 
@@ -30,12 +30,12 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------------------------------------
-bool FileSystem::Helper::IsUNCPath(WZStringView path)
+bool FileSystem::Helper::IsUNCPath(std::wstring_view path)
 {
 	if (path.size() < 2)
 		return false;
 
-	auto p = path.c_str();
+	auto p = path.data();
 	// Несмотря на то, что правильный UNC путь должен начинаться с 2 обратных слэшей, ОС Windows корректно
 	// работает с путями вида "//?/C:\file", в которых вместо некоторых обратных слэшей используются прямые
 	return (p[0] == '\\' || p[0] == '/') && (p[1] == '\\' || p[1] == '/');
@@ -55,6 +55,7 @@ std::wstring FileSystem::Helper::GetFullUNCPath(const wchar_t* path)
 		DWORD count = ::GetFullPathNameW(path, len, buffer, nullptr);
 		len = (count && count < len) ? count : 0;
 	}
+
 	return std::wstring(buffer, len);
 }
 
@@ -186,10 +187,12 @@ std::wstring FileSystem::CombinePath(std::wstring_view parent, std::wstring_view
 
 		if (!path.empty())
 		{
+			// Дополняем путь parent слэшем
 			const wchar_t last = parent.back();
 			if (last != '\\' && last != '/' && last != ':')
 				result.push_back('\\');
 
+			// Удаляем из пути path все слэши в начале
 			if (auto pos = path.find_first_not_of(L"\\/"); pos != path.npos)
 			{
 				path.remove_prefix(pos);
@@ -197,15 +200,28 @@ std::wstring FileSystem::CombinePath(std::wstring_view parent, std::wstring_view
 			}
 		}
 	}
+
 	return result;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 std::wstring FileSystem::ExtractPath(std::wstring_view path)
 {
-	size_t pos = path.find_last_of(L"\\/:");
-	pos = (pos != path.npos) ? pos + 1 : 0;
-	return std::wstring(path.data(), pos);
+	size_t i = path.find_last_of(L"\\/:");
+	i = (i != path.npos) ? i + 1 : 0;
+
+	auto p = path.data();
+	if (Helper::IsUNCPath(path))
+	{
+		while (i > 2 && (p[i - 1] == '\\' || p[i - 1] == '/'))
+			--i;
+	} else
+	{
+		while (i > 1 && (p[i - 1] == '\\' || p[i - 1] == '/') && p[i - 2] != ':')
+			--i;
+	}
+
+	return std::wstring(p, i);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -213,6 +229,7 @@ std::wstring FileSystem::ExtractFullName(std::wstring_view path)
 {
 	if (auto pos = path.find_last_of(L"\\/:"); pos != path.npos)
 		path.remove_prefix(pos + 1);
+
 	return std::wstring(path);
 }
 

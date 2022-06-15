@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -24,8 +24,8 @@ struct FileSystem
 	// parent может быть абсолютным или относительным, path должен быть относительным путём
 	static std::wstring CombinePath(std::wstring_view parent, std::wstring_view path);
 
-	// Извлекает из указанного пути path путь к файлу (последней директории в указанном пути). Возвращаемый путь
-	// всегда оканчивается слэшем, кроме случая, когда path имеет вид "C:myfile.ext" (тогда функция вернёт "C:").
+	// Извлекает из указанного пути path путь к файлу (последней директории в указанном пути). Возвращаемый путь не
+	// содержит слэш на конце, кроме случаев, когда path имеет вид "C:\path" (в этих случаях функция вернёт "C:\").
 	// Если указанный путь содержит только имя файла (директории) без слэшей, то функция вернёт пустую строку
 	static std::wstring ExtractPath(std::wstring_view path);
 	// Извлекает из указанного пути path имя файла (директории) с расширением. Если
@@ -66,6 +66,9 @@ protected:
 	// значение GetFullPath(path), дополненное префиксом "\\?\", и функция возвращает tmp.c_str()
 	static LongPath MakeLongPath(WZStringView path, std::wstring& tmp);
 	#endif
+
+private:
+	FileSystem() = delete;
 };
 
 } // namespace util
