@@ -24,6 +24,7 @@ static AML_NOINLINE void InitCRC32Table()
 		t = (t >> 1) ^ ((t & 1) * CRC32_POLYNOMIAL);
 		crc32Table[i] = t;
 	}
+
 	for (unsigned i = 2; i <= 128; i <<= 1)
 	{
 		const auto t = crc32Table[i];
@@ -55,6 +56,7 @@ AML_NOINLINE uint32_t GetCRC32(const void* data, size_t size, uint32_t prevHash)
 	{
 		crc = crc32Table[(crc ^ *p++) & 0xff] ^ (crc >> 8);
 	}
+
 	return static_cast<uint32_t>(~crc);
 }
 

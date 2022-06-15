@@ -100,6 +100,7 @@ AML_NOINLINE uint64_t DateTime::Now(bool utc) noexcept
 		::GetSystemTimeAsFileTime(&system);
 		if (utc || (::FileTimeToLocalFileTime(&system, &t) == 0))
 			t = system;
+
 		return ((static_cast<uint64_t>(t.dwHighDateTime) << 32) | t.dwLowDateTime) / 10000;
 	#else
 		#error Not implemented
@@ -140,6 +141,7 @@ AML_NOINLINE uint64_t DateTime::ToLocal(uint64_t time) noexcept
 		system.dwLowDateTime = static_cast<uint32_t>(time);
 		if (::FileTimeToLocalFileTime(&system, &t) == 0)
 			return 0;
+
 		return ((static_cast<uint64_t>(t.dwHighDateTime) << 32) | t.dwLowDateTime) / 10000;
 	#else
 		#error Not implemented

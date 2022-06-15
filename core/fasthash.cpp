@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -43,6 +43,7 @@ unsigned GetFastHash(const char* str, bool toLower) noexcept
 				FNV_HASH_1B(v);
 		}
 	}
+
 	return hash;
 }
 
@@ -111,6 +112,7 @@ unsigned GetFastHash(const wchar_t* str, bool toLower) noexcept
 				FNV_HASH_4B(v);
 		}
 	}
+
 	return hash;
 }
 
@@ -172,6 +174,7 @@ unsigned GetFastHash(const uint16_t* str) noexcept
 		while ((v = *str++) != 0)
 			FNV_HASH_2B(v);
 	}
+
 	return hash;
 }
 
@@ -184,6 +187,7 @@ unsigned GetFastHash(const uint16_t* str, size_t count) noexcept
 		v = *str++;
 		FNV_HASH_2B(v);
 	}
+
 	return hash;
 }
 
@@ -196,6 +200,7 @@ unsigned GetFastHash(const void* data, size_t size, unsigned prevHash) noexcept
 	{
 		FNV_HASH_1B(*p++);
 	}
+
 	return hash;
 }
 

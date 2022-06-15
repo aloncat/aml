@@ -33,6 +33,7 @@ SystemInfo::SystemInfo()
 				if (auto fullPath = FileSystem::GetFullPath(m_AppExePath); !fullPath.empty())
 					m_AppExePath = std::move(fullPath);
 			}
+
 			std::wstring param;
 			while (GetNextCmdLineParam(param, cmdLine))
 				m_CmdLineParameters.push_back(param);
@@ -89,6 +90,7 @@ char SystemInfo::GetDecimalPoint(bool localeChanged) const
 		auto i = sprintf_s(buffer, CountOf(buffer), "%.1f", .1f);
 		cachedValue = (i > 0) ? buffer[1] : '.';
 	}
+
 	return cachedValue;
 }
 
@@ -102,9 +104,9 @@ bool SystemInfo::IsConsoleApp()
 	};
 
 	#if AML_OS_WINDOWS
-		// Приложение будет считаться консольным (функция вернёт true), если классом Console не создавалось окно
-		// консоли и в данный момент к нашему процессу не подключено никакое другое окно. Недостаток этого способа
-		// в том, что если наше приложение консольное, но запущено в DETACHED состоянии, то функция вёрнет true
+		// Приложение будет считаться консольным (функция вернёт true), если классом Console не создавалось
+		// окно консоли и в данный момент у нашего процесса есть консольное окно. Недостаток этого способа в
+		// том, что если наше приложение консольное, но запущено в DETACHED состоянии, то функция вёрнет false
 		return !Helper::HasAllocatedConsole() && ::GetConsoleWindow() != nullptr;
 	#else
 		#error Not implemented
@@ -139,11 +141,13 @@ void SystemInfo::InitCoreCount()
 					}
 					++info;
 				}
+
 				m_CoreCount.logical = threads ? threads : 1;
 				m_CoreCount.physical = cores ? cores : 1;
-				if (m_CoreCount.logical < m_CoreCount.physical)
-					m_CoreCount.logical = m_CoreCount.physical;
+				if (m_CoreCount.logical < cores)
+					m_CoreCount.logical = cores;
 			}
+
 			delete[] p;
 		}
 	#else

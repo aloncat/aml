@@ -24,11 +24,19 @@ class Console : public VirtualKey
 public:
 	struct KeyEvent {
 		uint16_t vkey;		// Код виртуальной клавиши
-		bool isKeyDown;		// true, если клавиша нажата; false, если отпущена
-		bool isCtrlDown;	// true, если левая или праавая клавиша CTRL нажата
+		uint16_t flags;		// Различные флаги состояния
+
+		// true, если клавиша нажата; false, если отпущена
+		bool IsKeyDown() const { return (flags & 1) != 0; }
+		// true, если левая или правая клавиша ALT нажата
+		bool IsAltDown() const { return (flags & ALT_DOWN) != 0; }
+		// true, если левая или правая клавиша CTRL нажата
+		bool IsCtrlDown() const { return (flags & CTRL_DOWN) != 0; }
+		// true, если левая или правая клавиша SHIFT нажата
+		bool IsShiftDown() const { return (flags & SHIFT_DOWN) != 0; }
 	};
 
-	// Создаёт объект консоли. Если у приложения уже есть окно консоли, то объект подколючается
+	// Создаёт объект консоли. Если у приложения уже есть окно консоли, то объект подключается
 	// к нему. Если окна консоли нет (например, для GUI приложения), то создаётся новое окно
 	Console();
 
@@ -77,7 +85,6 @@ protected:
 	};
 
 	void InitMainCS();
-	void InitKeyTT();
 
 	void SetColor(int color);
 

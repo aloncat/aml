@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2016-2021 Dmitry Maslov
+// Copyright (C) 2016-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #include "pch.h"
@@ -39,6 +39,7 @@ EGeneric& EGeneric::operator =(const EGeneric& that) noexcept
 		Tidy();
 		m_What = CopyString(that.m_What);
 	}
+
 	return *this;
 }
 
@@ -61,9 +62,11 @@ AML_NOINLINE const char* EGeneric::CopyString(const char* str, size_t size)
 		{
 			memcpy(buffer, str, size);
 			buffer[size] = 0;
+
 			return buffer;
 		}
 	}
+
 	return nullptr;
 }
 

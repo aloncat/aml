@@ -1,8 +1,10 @@
 ﻿//∙AML
-// Copyright (C) 2020-2021 Dmitry Maslov
+// Copyright (C) 2020-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
+
+#include "platform.h"
 
 namespace util {
 
@@ -20,37 +22,37 @@ public:
 		KEY_CTRL	= 0x09,		// Любая из клавиш Ctrl
 		KEY_SHIFT	= 0x0a,		// Любая из клавиш Shift
 
-		KEY_LALT	= 0x0c,		// Левый Alt
-		KEY_RALT	= 0x0d,		// Правый Alt
-		KEY_LCTRL	= 0x0e,		// Левый Ctrl
-		KEY_RCTRL	= 0x0f,		// Правый Ctrl
-		KEY_LSHIFT	= 0x10,		// Левый Shift
-		KEY_RSHIFT	= 0x11,		// Правый Shift
+		KEY_LALT	= 0x0c,		// Левый Alt (только для состояний)
+		KEY_RALT	= 0x0d,		// Правый Alt (только для состояний)
+		KEY_LCTRL	= 0x0e,		// Левый Ctrl (только для состояний)
+		KEY_RCTRL	= 0x0f,		// Правый Ctrl (только для состояний)
+		KEY_LSHIFT	= 0x10,		// Левый Shift (только для состояний)
+		KEY_RSHIFT	= 0x11,		// Правый Shift (только для состояний)
 
 		KEY_NUM		= 0x14,		// Num Lock
 		KEY_CAPS	= 0x15,		// Caps Lock
 		KEY_SCROLL	= 0x16,		// Scroll Lock
 
-		KEY_ESC		= 0x18,		// Esc
-		KEY_TAB		= 0x19,		// Tab
-		KEY_SPACE	= 0x1a,		// Пробел
-		KEY_BACK	= 0x1b,		// Backspace
-		KEY_ENTER	= 0x1c,		// Enter (основная и цифровая клавиатуры)
+		KEY_PRINT	= 0x18,		// Print Screen (SysRq)
+		KEY_PAUSE	= 0x19,		// Pause (Break)
 
-		KEY_PRINT	= 0x1d,		// Print Screen (SysRq)
-		KEY_PAUSE	= 0x1e,		// Pause (Break)
+		KEY_ESC		= 0x1c,		// Esc
+		KEY_TAB		= 0x1d,		// Tab
+		KEY_BACK	= 0x1e,		// Backspace
+		KEY_ENTER	= 0x1f,		// Enter (основная и цифровая клавиатуры)
+		KEY_SPACE	= 0x20,		// Пробел
 
-		KEY_INSERT	= 0x20,		// Insert
-		KEY_DELETE	= 0x21,		// Delete
-		KEY_HOME	= 0x22,		// Home (ср. секция)
-		KEY_END		= 0x23,		// End (ср. секция)
-		KEY_PAGEUP	= 0x24,		// Page Up (ср. секция)
-		KEY_PAGEDN	= 0x25,		// Page Down (ср. секция)
+		KEY_INSERT	= 0x24,		// Insert (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_DELETE	= 0x25,		// Delete (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_HOME	= 0x26,		// Home (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_END		= 0x27,		// End (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_PAGEUP	= 0x28,		// Page Up (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_PAGEDN	= 0x29,		// Page Down (ср. секция и цифр. клавиатура при выкл. NumLock)
 
-		KEY_LEFT	= 0x26,		// Влево (ср. секция)
-		KEY_UP		= 0x27,		// Вверх (ср. секция)
-		KEY_RIGHT	= 0x28,		// Вправо (ср. секция)
-		KEY_DOWN	= 0x29,		// Вниз (ср. секция)
+		KEY_LEFT	= 0x2a,		// Влево (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_UP		= 0x2b,		// Вверх (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_RIGHT	= 0x2c,		// Вправо (ср. секция и цифр. клавиатура при выкл. NumLock)
+		KEY_DOWN	= 0x2d,		// Вниз (ср. секция и цифр. клавиатура при выкл. NumLock)
 
 		KEY_0		= 0x30,		// Цифровые клавиши 0-9
 		KEY_1		= 0x31,
@@ -139,6 +141,10 @@ public:
 		CTRL_DOWN	= 0x2000,	// Этот бит установлен, если любая из клавиш Ctrl нажата
 		SHIFT_DOWN	= 0x4000	// Этот бит установлен, если любая из клавиш Shift нажата
 	};
+
+protected:
+	// Инициализирует таблицу трансляции кодов виртуальных клавиш (ОС Windows)
+	static void InitKeyTTWin(uint8_t* table, size_t size);
 };
 
 } // namespace util

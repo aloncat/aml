@@ -89,6 +89,7 @@ struct WinAPI final
 	AML_DECLARE_WINAPI_FN(GetTickCount64)
 
 private:
+	WinAPI() = delete;
 	static void Load() noexcept;
 
 	static bool s_IsLoaded;

@@ -154,5 +154,8 @@
     <ClCompile Include="..\..\core\log.cpp">
       <Filter>util</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\core\vkey.cpp">
+      <Filter>util</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 ﻿//∙AML
-// Copyright (C) 2017-2021 Dmitry Maslov
+// Copyright (C) 2017-2022 Dmitry Maslov
 // For conditions of distribution and use, see readme.txt
 
 #pragma once
@@ -58,8 +58,8 @@ public:
 	// Восстанавливает исходное значение переменной
 	~Toggle() noexcept
 	{
-		// NB: для корректной работы класс T должен иметь nothrow оператор перемещающего
-		// присваивания или nothrow оператор копирования (только если перемещающего нет)
+		// Для корректной работы класс T должен иметь nothrow оператор перемещающего
+		// присваивания или nothrow оператор копирования (если перемещающего нет)
 		*m_VarPtr = std::move(m_Value);
 	}
 

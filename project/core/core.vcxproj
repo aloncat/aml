@@ -212,6 +212,7 @@
     <ClCompile Include="..\..\core\thread.cpp" />
     <ClCompile Include="..\..\core\threadsync.cpp" />
     <ClCompile Include="..\..\core\util.cpp" />
+    <ClCompile Include="..\..\core\vkey.cpp" />
     <ClCompile Include="..\..\core\winapi.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
