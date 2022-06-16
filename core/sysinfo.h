@@ -33,7 +33,7 @@ public:
 
 	// Возвращает полный путь к исполнимому файлу приложения
 	const std::wstring& GetAppExePath() const { return m_AppExePath; }
-	// Возвращает полный путь (оканчивающийся слешем) к директории
+	// Возвращает полный путь (без слэша на конце) к директории
 	// локальных (non-roaming) пользовательских данных приложений
 	const std::wstring& GetAppDataPath() const { return m_AppDataPath; }
 

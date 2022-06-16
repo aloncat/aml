@@ -106,7 +106,7 @@ AML_NOINLINE void FileSystem::Helper::MakeFullPath(std::wstring& fullPath, WZStr
 		drive = (op >= 3 && out[1] == ':') ? 3 : (op >= 2) ? 2 : op;
 	}
 
-	op = CompactPath(&src[i], &out[drive], op - drive);
+	op = CompactPath(src + i, out + drive, op - drive);
 	fullPath.append(out, drive + op);
 
 	if (out != localBuffer)
@@ -147,6 +147,7 @@ size_t FileSystem::Helper::CompactPath(const wchar_t* src, wchar_t* out, size_t 
 		else if (op && out[op - 1] == '\\')
 			--op;
 	}
+
 	return op;
 }
 
@@ -207,21 +208,36 @@ std::wstring FileSystem::CombinePath(std::wstring_view parent, std::wstring_view
 //--------------------------------------------------------------------------------------------------------------------------------
 std::wstring FileSystem::ExtractPath(std::wstring_view path)
 {
-	size_t i = path.find_last_of(L"\\/:");
-	i = (i != path.npos) ? i + 1 : 0;
-
 	auto p = path.data();
-	if (Helper::IsUNCPath(path))
+	size_t len = path.size();
+
+	if (len)
 	{
-		while (i > 2 && (p[i - 1] == '\\' || p[i - 1] == '/'))
-			--i;
-	} else
-	{
-		while (i > 1 && (p[i - 1] == '\\' || p[i - 1] == '/') && p[i - 2] != ':')
-			--i;
+		if (Helper::IsUNCPath(path))
+		{
+			// Если путь оканчивается слэшем, то сначала удалим его
+			while (len > 2 && (p[len - 1] == '\\' || p[len - 1] == '/'))
+				--len;
+
+			size_t i = path.find_last_of(L"\\/", len - 1);
+
+			len = (i == path.npos) ? 0 : i + 1;
+			while (len > 2 && (p[len - 1] == '\\' || p[len - 1] == '/'))
+				--len;
+		} else
+		{
+			while (len > 1 && (p[len - 1] == '\\' || p[len - 1] == '/') && p[len - 2] != ':')
+				--len;
+
+			size_t i = path.find_last_of(L"\\/:", len - 1);
+			len = (i == path.npos) ? 0 : i + 1;
+
+			while (len > 1 && (p[len - 1] == '\\' || p[len - 1] == '/') && p[len - 2] != ':')
+				--len;
+		}
 	}
 
-	return std::wstring(p, i);
+	return std::wstring(p, len);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -256,6 +272,8 @@ bool FileSystem::MakeDirectory(WZStringView path, bool createAll)
 	std::wstring tmpPath;
 	auto longPath = MakeLongPath(path, tmpPath);
 
+	// Наличие одного или нескольких слэшей на конце пути не влияет на работу
+	// этой функции, поэтому мы можем не убирать их, а передать путь как есть
 	if (::CreateDirectoryW(longPath.first, nullptr))
 		return true;
 

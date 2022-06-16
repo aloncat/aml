@@ -41,10 +41,7 @@ SystemInfo::SystemInfo()
 
 		wchar_t path[MAX_PATH];
 		if (::SHGetFolderPathW(nullptr, CSIDL_LOCAL_APPDATA, nullptr, SHGFP_TYPE_CURRENT, path) == S_OK)
-		{
-			std::wstring fullPath(path);
-			m_AppDataPath = FileSystem::GetFullPath(fullPath.append(L"\\"));
-		}
+			m_AppDataPath = FileSystem::GetFullPath(path);
 	#else
 		#error Not implemented
 	#endif
