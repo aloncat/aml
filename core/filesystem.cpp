@@ -176,6 +176,25 @@ std::wstring FileSystem::GetFullPath(WZStringView path)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
+std::wstring FileSystem::RemoveTrailingSlashes(std::wstring_view path)
+{
+	auto p = path.data();
+	size_t len = path.size();
+
+	if (Helper::IsUNCPath(path))
+	{
+		while (len > 2 && (p[len - 1] == '\\' || p[len - 1] == '/'))
+			--len;
+	} else
+	{
+		while (len > 1 && (p[len - 1] == '\\' || p[len - 1] == '/') && p[len - 2] != ':')
+			--len;
+	}
+
+	return std::wstring(p, len);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
 std::wstring FileSystem::CombinePath(std::wstring_view parent, std::wstring_view path)
 {
 	std::wstring result;
@@ -247,6 +266,36 @@ std::wstring FileSystem::ExtractFullName(std::wstring_view path)
 		path.remove_prefix(pos + 1);
 
 	return std::wstring(path);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring FileSystem::ExtractExtension(std::wstring_view path)
+{
+	if (auto pos = path.find_last_of(L".\\/:"); pos != path.npos && path[pos] == '.')
+		return std::wstring(path, pos + 1, path.npos);
+
+	return std::wstring();
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring FileSystem::ChangeExtension(std::wstring_view path, std::wstring_view newExtension)
+{
+	std::wstring result;
+
+	auto pos = path.find_last_of(L".\\/:");
+	// Если path оканчивается точкой, то считаем, что расширения
+	// нет, а эта точка является частью имени файла (директории)
+	if (pos != path.npos && (path[pos] != '.' || pos + 1 == path.size()))
+		pos = path.npos;
+
+	result.append(path, 0, pos);
+	if (!newExtension.empty())
+	{
+		result += '.';
+		result.append(newExtension);
+	}
+
+	return result;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
