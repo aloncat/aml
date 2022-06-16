@@ -8,6 +8,7 @@
 #include "array.h"
 #include "datetime.h"
 #include "exception.h"
+#include "fasthash.h"
 #include "filesystem.h"
 #include "log.h"
 #include "strcommon.h"
@@ -47,12 +48,6 @@ AssertHandler::Result AssertHandler::OnError(Reason reason, std::wstring_view fi
 	if (SystemLog::InstanceExists())
 		SystemLog::Instance().Flush();
 
-	// TODO: тут хотелось бы кастомное окно, в котором будут три кнопки ("Skip", "Skip all" и "Terminate") и текст
-	// сообщения об ошибке. Возможно также стоит добавить кнопку "Copy to clipboard" для копирования текста сообщения
-	// в буфер обмена. Не забыть о проблеме обработки сообщений главного окна (главного потока): если мы будем ожидать
-	// в этой функции нажатия пользователем кнопки в окне, то нужно как-то продолжать обработку очереди сообщений.
-	// Пока же мы будем использовать простой MessageBox с одной кнопкой OK, выполняющей роль кнопки "Skip"
-
 	#if AML_OS_WINDOWS
 		if (SystemInfo::Instance().IsConsoleApp())
 		{
@@ -65,14 +60,23 @@ AssertHandler::Result AssertHandler::OnError(Reason reason, std::wstring_view fi
 		else if (!DebugHelper::IsDebuggerActive())
 		{
 			errorMsg = FormatMsg(reason, true, filePath, line, text);
-			DebugHelper::ShowErrorMsgBox(errorMsg, (reason == Reason::AssertFailed) ?
-				L"Assertion failed" : L"Halt occured");
+			return ShowPopup(reason, errorMsg);
 		}
 
-		return Result::Skip;
+		return s_DefaultAction;
 	#else
 		#error Not implemented
 	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void AssertHandler::OnTerminate()
+{
+	LogError(L"User has initiated program termination");
+
+	// По умолчанию завершаем работу с помощью вызова функции _exit(). По
+	// желанию в наследнике класса может быть реализовано иное поведение
+	_exit(3);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -122,6 +126,15 @@ void AssertHandler::LogError(std::wstring_view msg)
 	}
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------
+AssertHandler::Result AssertHandler::ShowPopup(Reason reason, std::wstring_view errorMsg)
+{
+	DebugHelper::ShowErrorMsgBox(errorMsg, (reason == Reason::AssertFailed) ?
+		L"Assertion failed" : L"Halt occured");
+
+	return s_DefaultAction;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //   DebugHelper
@@ -131,7 +144,7 @@ void AssertHandler::LogError(std::wstring_view msg)
 //--------------------------------------------------------------------------------------------------------------------------------
 DebugHelper::DebugHelper()
 {
-	// NB: так как функция Abort, а также функции AssertHelper обращаются к синглтону SystemInfo, то мы бы
+	// Так как функция Abort, а также функции AssertHelper обращаются к синглтону SystemInfo, то мы бы
 	// хотели, чтобы к моменту вызова Abort или обработки макросов Assert/Verify/Halt он уже был готов, а не
 	// инициализировался по требованию. Поэтому проинициализируем его сейчас, если это ещё не было сделано
 	SystemInfo::Instance();
@@ -149,7 +162,7 @@ DebugHelper::DebugHelper()
 		{
 			m_IsDebuggerActive = true;
 			// Для отладочных конфигураций при активном отладчике мы всегда хотим видеть сообщение
-			// об ошибке в окне, не зависимо от того, консольное это приложение или GUI-приложение
+			// об ошибке в окне, независимо от того, консольное это приложение или GUI-приложение
 			_set_error_mode(_OUT_TO_MSGBOX);
 		}
 	#endif
@@ -243,50 +256,64 @@ AML_NOINLINE void DebugHelper::DebugOutput(std::wstring_view msg)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void DebugHelper::OnAssert(const wchar_t* filePath, int line, const wchar_t* expression)
+AML_NOINLINE bool DebugHelper::OnAssert(const wchar_t* filePath, int line, const wchar_t* expression)
 {
 	if (!filePath || !filePath[0])
 		filePath = L"[no file]";
 	if (!expression || !expression[0])
 		expression = L"[no expression]";
 
-	const DebugHelper& instance = Instance();
-	auto result = AssertHandler::Result::Skip;
+	DebugHelper& instance = Instance();
 	if (auto handler = instance.m_AssertHandler)
 	{
-		result = handler->OnError(AssertHandler::Reason::AssertFailed,
+		const auto hash = instance.GetErrorHash(filePath, line, expression);
+		if (instance.m_IgnoredErrors.find(hash) != instance.m_IgnoredErrors.end())
+			return false;
+
+		auto result = handler->OnError(AssertHandler::Reason::AssertFailed,
 			filePath, line, expression);
+
+		if (result == AssertHandler::Result::SkipAll)
+			instance.m_IgnoredErrors.insert(hash);
+		else if (result == AssertHandler::Result::Terminate)
+			instance.Terminate();
 	}
 
-	// TODO: сейчас мы ничего не делаем с возвращаемым значением result (выбором действия пользователем). Позже нужно
-	// будет добавить вычисление хеша от трёх параметров, добавление его в std::set и проверку наличия этого хеша в
-	// наборе перед вызовом обработчика, чтобы в случае выбора пользователем SkipAll не выводить сообщение повторно
+	return true;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void DebugHelper::OnHalt(const wchar_t* filePath, int line, std::string_view msg)
+AML_NOINLINE bool DebugHelper::OnHalt(const wchar_t* filePath, int line, std::string_view msg)
 {
 	auto text = FromAnsi(msg);
-	OnHalt(filePath, line, text);
+	return OnHalt(filePath, line, text);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void DebugHelper::OnHalt(const wchar_t* filePath, int line, std::wstring_view msg)
+AML_NOINLINE bool DebugHelper::OnHalt(const wchar_t* filePath, int line, std::wstring_view msg)
 {
 	if (!filePath || !filePath[0])
 		filePath = L"[no file]";
 	if (msg.empty())
 		msg = L"[no message]";
 
-	const DebugHelper& instance = Instance();
-	auto result = AssertHandler::Result::Skip;
+	DebugHelper& instance = Instance();
 	if (auto handler = instance.m_AssertHandler)
 	{
-		result = handler->OnError(AssertHandler::Reason::HaltInvoked,
+		const auto hash = instance.GetErrorHash(filePath, line, msg);
+		if (instance.m_IgnoredErrors.find(hash) != instance.m_IgnoredErrors.end())
+			return false;
+
+		auto result = handler->OnError(AssertHandler::Reason::HaltInvoked,
 			filePath, line, msg);
+
+		if (result == AssertHandler::Result::SkipAll)
+			instance.m_IgnoredErrors.insert(hash);
+		else if (result == AssertHandler::Result::Terminate)
+			instance.Terminate();
 	}
 
-	// TODO: см. комментарий к result в функции OnAssert
+	return true;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -348,4 +375,28 @@ void DebugHelper::ShowErrorMsgBox(std::wstring_view msgText, std::wstring_view t
 	#else
 		#error Not implemented
 	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+unsigned DebugHelper::GetErrorHash(const wchar_t* filePath, int line, std::wstring_view msg)
+{
+	Formatter<wchar_t> fmt;
+
+	fmt << filePath << '\n';
+	fmt << line << '\n';
+	fmt << msg;
+
+	return hash::GetFastHash(fmt, false);
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+void DebugHelper::Terminate()
+{
+	thrd::Lock lock(m_CS);
+
+	if (m_AssertHandler && !m_IsTerminating)
+	{
+		m_IsTerminating = true;
+		m_AssertHandler->OnTerminate();
+	}
 }

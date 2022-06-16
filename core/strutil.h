@@ -615,6 +615,7 @@ protected:
 			capacity = (capacity + 0x7ffffff) & (~size_t(0) << 16);
 			return capacity / sizeof(CharT);
 		}
+
 		return ~size_t(0) / sizeof(CharT);
 	}
 
@@ -646,9 +647,11 @@ inline basic_string<CharT, Traits, Alloc> operator +(
 {
 	const basic_string_view<CharT, Traits> sv = rhs;
 	basic_string<CharT, Traits, Alloc> result;
+
 	result.reserve(lhs.size() + sv.size());
 	result.assign(lhs);
 	result.append(sv.data(), sv.size());
+
 	return result;
 }
 
@@ -661,9 +664,11 @@ inline basic_string<CharT, Traits, Alloc> operator +(
 {
 	const basic_string_view<CharT, Traits> sv = lhs;
 	basic_string<CharT, Traits, Alloc> result;
+
 	result.reserve(sv.size() + rhs.size());
 	result.assign(sv.data(), sv.size());
 	result.append(rhs);
+
 	return result;
 }
 

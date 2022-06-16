@@ -47,6 +47,7 @@ std::pair<uint32_t, bool> File::GetCRC32(long long position, size_t size)
 		else if (position < 0 || SetPosition(position))
 			result.second = GetCRC32Custom(result.first, bytesToProcess);
 	}
+
 	return result;
 }
 
@@ -82,6 +83,7 @@ bool File::SaveTo(WZStringView path)
 			dest.Close();
 		}
 	}
+
 	return result;
 }
 
@@ -100,9 +102,11 @@ bool File::SaveToCustom(File& file)
 			auto [bytesRead, success] = Read(buffer, BLOCK_SIZE);
 			if (!success || !bytesRead || !file.Write(buffer, bytesRead))
 				break;
+
 			bytesCopied += bytesRead;
 		}
 	}
+
 	return bytesCopied == bytesToCopy;
 }
 
@@ -124,6 +128,7 @@ bool File::GetCRC32Custom(uint32_t& crc, long long size)
 		crc = hash::GetCRC32(buffer, bytesRead, crc);
 		bytesLeft -= bytesRead;
 	}
+
 	return true;
 }
 
@@ -233,6 +238,7 @@ std::pair<size_t, bool> BinaryFile::Read(void* buffer, size_t bytesToRead)
 			}
 		}
 	}
+
 	return result;
 }
 
@@ -288,6 +294,7 @@ long long BinaryFile::GetSize() const
 		if (::GetLastError() != NO_ERROR)
 			return -1;
 	}
+
 	return fileSize.QuadPart;
 }
 
@@ -306,6 +313,7 @@ long long BinaryFile::GetPosition() const
 		if (::GetLastError() != NO_ERROR)
 			return -1;
 	}
+
 	return filePosition.QuadPart;
 }
 
@@ -324,6 +332,7 @@ bool BinaryFile::SetPosition(long long position)
 		if (::GetLastError() != NO_ERROR)
 			return false;
 	}
+
 	return true;
 }
 
@@ -487,6 +496,7 @@ bool MemoryFile::Truncate()
 	}
 	m_Block->header.next = nullptr;
 	m_Size = m_Position;
+
 	return true;
 }
 
@@ -500,6 +510,7 @@ bool MemoryFile::LoadFrom(WZStringView path, bool clear)
 		result = LoadFrom(src, clear);
 		src.Close();
 	}
+
 	return result;
 }
 
@@ -515,6 +526,7 @@ bool MemoryFile::LoadFrom(File& file, bool clear)
 	const size_t originalPos = m_Position;
 	bool result = file.SaveTo(*this, clear);
 	SetPosition(clear ? 0 : originalPos);
+
 	return result;
 }
 
@@ -552,6 +564,7 @@ bool MemoryFile::SaveToCustom(File& file)
 
 		bytesLeft -= toCopy;
 	}
+
 	return true;
 }
 
@@ -600,6 +613,7 @@ inline void MemoryFile::Grow()
 		m_Block->header.next = newBlock;
 		m_Block = newBlock;
 	}
+
 	m_BlockPos = 0;
 }
 
@@ -622,6 +636,7 @@ AML_NOINLINE void MemoryFile::ApplyPosition()
 		if (m_Position > m_Size)
 			m_Size = m_Position;
 	}
+
 	m_BlockPos = newPosition - (m_Position - BLOCK_SIZE);
 	// Установим размер файла равным новой текущей позиции. Далее мы либо допишем что-то в наш файл и
 	// обновим тем самым размер, либо (если это вызов из функции Truncate) это и будет новый размер

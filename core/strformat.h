@@ -14,6 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace util {
@@ -66,8 +67,8 @@ public:
 		m_DecimalPoint = sysInfo.GetDecimalPoint();
 	}
 
-	// Выводит "true" или "false" в соответствии со значением value. NB: этот оператор объявлен как шаблонная
-	// функция, так как он не должен иметь приоритет над другими операторами <<, принимающими строковые типы
+	// Выводит "true" или "false" в соответствии со значением value. Этот оператор объявлен как шаблонная
+	// функция, так как не должен иметь приоритет над другими операторами <<, принимающими строковые типы
 	template<class T, class = std::enable_if_t<std::is_same_v<T, bool>>>
 	Formatter& operator <<(T value)
 	{
@@ -75,6 +76,7 @@ public:
 			this->Append(value ? L"true" : L"false");
 		else
 			this->Append(value ? "true" : "false");
+
 		return *this;
 	}
 
@@ -88,6 +90,7 @@ public:
 			this->Append('-');
 			v = -value;
 		}
+
 		return *this << v;
 	}
 
@@ -118,6 +121,7 @@ public:
 			this->Append('-');
 			v = -value;
 		}
+
 		return *this << v;
 	}
 
@@ -165,6 +169,7 @@ public:
 
 		auto count = buffer + CountOf(buffer) - p;
 		this->Append(p, count);
+
 		return *this;
 	}
 
@@ -234,7 +239,7 @@ public:
 	}
 
 	// Выводит символ chr. Если тип chr не совпадает с CharT, то функция выполнит преобразование
-	// автоматически, только если код символа меньше 0x80, иначе символ будет заменён на U+FFFD)
+	// автоматически, только если код символа меньше 0x80, иначе символ будет заменён на U+FFFD
 	Formatter& operator <<(char chr)
 	{
 		this->Append(chr);
@@ -242,7 +247,7 @@ public:
 	}
 
 	// Выводит символ chr. Если тип chr не совпадает с CharT, то функция выполнит преобразование
-	// автоматически, только если код символа меньше 0x80, иначе символ будет заменён на '?')
+	// автоматически, только если код символа меньше 0x80, иначе символ будет заменён на '?'
 	Formatter& operator <<(wchar_t chr)
 	{
 		this->Append(chr);
@@ -255,6 +260,7 @@ public:
 	{
 		const CharT* text = str;
 		this->Append(text);
+
 		return *this;
 	}
 

@@ -14,7 +14,7 @@ template<class CharT>
 class BasicZSView : public BasicZStringView<CharT>
 {
 public:
-	// NB: параметр str указывает на начало null-terminated строки
+	// Параметр str указывает на начало null-terminated строки
 	constexpr BasicZSView(const CharT* str, size_t size) noexcept
 		: BasicZStringView<CharT>(str, size)
 	{
@@ -94,6 +94,7 @@ static AML_NOINLINE bool FormatStringA(size_t expectedSize, const char* format, 
 			return true;
 		}
 	}
+
 	return false;
 }
 
@@ -113,6 +114,7 @@ static AML_NOINLINE bool FormatStringW(const wchar_t* format, va_list args, cons
 		cb(BasicZSView<wchar_t>(buffer, len));
 		return true;
 	}
+
 	return false;
 }
 
@@ -146,6 +148,7 @@ AML_NOINLINE std::string Format(const char* format, ...)
 			out.assign(localBuffer, len);
 		}
 	}
+
 	return out;
 }
 
@@ -178,6 +181,7 @@ AML_NOINLINE std::wstring Format(const wchar_t* format, ...)
 			out.assign(localBuffer, len);
 		}
 	}
+
 	return out;
 }
 
@@ -192,6 +196,7 @@ std::wstring FormatW(const char* format, ...)
 		FormatEx(format, args, [&](ZStringView s) { out = FromAnsi(s); });
 		va_end(args);
 	}
+
 	return out;
 }
 

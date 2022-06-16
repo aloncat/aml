@@ -9,6 +9,8 @@
 #include "threadsync.h"
 #include "util.h"
 
+#include <set>
+#include <string>
 #include <string_view>
 
 namespace util {
@@ -50,18 +52,18 @@ namespace util {
 	#define Halt(MESSAGE) ((void) 0)
 #else
 	#define Assert(EXPRESSION) \
-		((void)(!(EXPRESSION) && ( \
-			util::DebugHelper::OnAssert(AML_WSTRING(__FILE__), __LINE__, AML_WSTRING(#EXPRESSION)), \
-			AML_DBG_BREAK, 0)))
+		((void)(!(EXPRESSION) && \
+			util::DebugHelper::OnAssert(AML_WSTRING(__FILE__), __LINE__, AML_WSTRING(#EXPRESSION)) && \
+			(AML_DBG_BREAK, 0)))
 
 	#define Verify(EXPRESSION) \
 		((EXPRESSION) ? true : ( \
-			util::DebugHelper::OnAssert(AML_WSTRING(__FILE__), __LINE__, AML_WSTRING(#EXPRESSION)), \
-			AML_DBG_BREAK, false))
+			util::DebugHelper::OnAssert(AML_WSTRING(__FILE__), __LINE__, AML_WSTRING(#EXPRESSION)) && \
+			(AML_DBG_BREAK, 0), false))
 
 	#define Halt(MESSAGE) \
-		((void)(util::DebugHelper::OnHalt(AML_WSTRING(__FILE__), __LINE__, MESSAGE), \
-			AML_DBG_BREAK, 0))
+		((void)(util::DebugHelper::OnHalt(AML_WSTRING(__FILE__), __LINE__, MESSAGE) && \
+			(AML_DBG_BREAK, 0)))
 #endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +84,7 @@ class AssertHandler
 
 public:
 	enum class Reason {
-		AssertFailed,	// Источник ошибки: выражение в Assert
+		AssertFailed,	// Источник ошибки: выражение в Assert/Verify
 		HaltInvoked		// Источник ошибки: макрос Halt
 	};
 
@@ -99,9 +101,20 @@ public:
 	// (Reason::AssertFailed). Также она вызывается макросом Halt (Reason::HaltInvoked)
 	virtual Result OnError(Reason reason, std::wstring_view filePath, int line, std::wstring_view text);
 
+	// Эта функция однократно вызывается в результате выбора варианта Result::Terminate
+	// как реакции на ошибку (если функция OnError/ShowPopup вернёт указанное значение)
+	virtual void OnTerminate();
+
 protected:
 	static std::wstring FormatMsg(Reason reason, bool forMsgBox, std::wstring_view filePath, int line, std::wstring_view text);
 	static void LogError(std::wstring_view msg);
+
+	virtual Result ShowPopup(Reason reason, std::wstring_view errorMsg);
+
+	// Во время отладки (в отладочных конфигурациях под активным отладчиком) окно с сообщением об ошибке
+	// и кнопками выбора действия не показывается. Вместо этого программа прерывается на каждом ассерте.
+	// Изменяя в отладчике значение этой переменной можно эмулировать выбор реакции на ошибку
+	static inline Result s_DefaultAction = Result::Skip;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -139,12 +152,14 @@ public:
 	// Возвращает true, если вывод в консоль отладчика разрешён
 	bool IsDebugOutputEnabled() const { return m_IsDebugOutputEnabled; }
 
-	// Вызывает функцию OnAssert заданного обработчика
-	static void OnAssert(const wchar_t* filePath, int line, const wchar_t* expression);
+	// Вызывает функцию OnAssert заданного обработчика. Возвращает true, если ошибка не была пропущена
+	// (не находится в списке игнорируемых, под отладчиком в этом случае должен произойти останов)
+	static bool OnAssert(const wchar_t* filePath, int line, const wchar_t* expression);
 
-	// Вызывает функцию OnHalt заданного обработчика
-	static void OnHalt(const wchar_t* filePath, int line, std::string_view msg);
-	static void OnHalt(const wchar_t* filePath, int line, std::wstring_view msg);
+	// Вызывает функцию OnHalt заданного обработчика. Возвращает true, если ошибка не была пропущена
+	// (не находится в списке игнорируемых, под отладчиком в этом случае должен произойти останов)
+	static bool OnHalt(const wchar_t* filePath, int line, std::string_view msg);
+	static bool OnHalt(const wchar_t* filePath, int line, std::wstring_view msg);
 
 	// Аварийно завершает работу приложения. Если пользовательский обработчик был установлен, то он
 	// будет вызван с указанным значением кода ошибки exitCode. Если обрабтчик не был установлен,
@@ -158,11 +173,21 @@ protected:
 	DebugHelper();
 	virtual ~DebugHelper() override;
 
+	// Генерирует хеш ошибки, соответствующий указанным значениям
+	static unsigned GetErrorHash(const wchar_t* filePath, int line, std::wstring_view msg);
+
+	// Однократно вызывает функцию AssertHandler::OnTerminate
+	void Terminate();
+
+protected:
 	thrd::CriticalSection m_CS;
-	AssertHandler* m_AssertHandler = nullptr;
-	AbortHandler m_AbortHandler = nullptr;
-	bool m_IsDebugOutputEnabled = false;
-	bool m_IsDebuggerActive = false;
+
+	AssertHandler* m_AssertHandler = nullptr;	// Указатель на объект обработчика Assert/Verify/Halt
+	AbortHandler m_AbortHandler = nullptr;		// Указатель на пользовательскую функцию аварийного завершения
+	std::set<unsigned> m_IgnoredErrors;			// Хеши игнорируемых ошибок
+	bool m_IsDebugOutputEnabled = false;		// true, если вывод в консоль отладчика разрешён
+	bool m_IsDebuggerActive = false;			// true, если приложение работает под отладчиком
+	bool m_IsTerminating = false;				// true, если вызвана функция Terminate
 };
 
 } // namespace util
