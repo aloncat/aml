@@ -10,5 +10,8 @@
 // этих шаблонов. Не следует добавлять сюда и те классы, которые предназначены только для внутреннего пользования
 
 namespace aux {
+	class XmlDocument;
+	class XmlNode;
+	class XmlReader;
 	class XmlWriter;
 }

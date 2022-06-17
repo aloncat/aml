@@ -20,6 +20,12 @@
     <ClInclude Include="..\..\auxlib\xmlwriter.h">
       <Filter>xml</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\auxlib\xmlreader.h">
+      <Filter>xml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\auxlib\xmldoc.h">
+      <Filter>xml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\auxlib\prefix.cpp">
@@ -29,6 +35,12 @@
       <Filter>util</Filter>
     </ClCompile>
     <ClCompile Include="..\..\auxlib\xmlwriter.cpp">
+      <Filter>xml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auxlib\xmlreader.cpp">
+      <Filter>xml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\auxlib\xmldoc.cpp">
       <Filter>xml</Filter>
     </ClCompile>
   </ItemGroup>
