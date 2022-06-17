@@ -201,7 +201,7 @@ inline int StrCmp(const wchar_t* strA, const wchar_t* strB)
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrCmp(std::string_view strA, std::string_view strB)
 {
-	// NB: реализация в STL (char_traits) довольно неплоха.
+	// Реализация в STL (char_traits) довольно неплоха.
 	// Можно сделать лучше, но это будет непросто
 	return strA.compare(strB);
 }
@@ -209,21 +209,21 @@ inline int StrCmp(std::string_view strA, std::string_view strB)
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrCmp(std::wstring_view strA, std::wstring_view strB)
 {
-	// NB: см. комментарий в предыдущей функции
+	// См. комментарий в предыдущей функции
 	return strA.compare(strB);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrCmp(const std::string& strA, const std::string& strB)
 {
-	// NB: см. комментарий в предыдущей функции
+	// См. комментарий в предыдущей функции
 	return strA.compare(strB);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrCmp(const std::wstring& strA, const std::wstring& strB)
 {
-	// NB: см. комментарий в предыдущей функции
+	// См. комментарий в предыдущей функции
 	return strA.compare(strB);
 }
 

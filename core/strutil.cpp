@@ -42,7 +42,7 @@ struct caseTT final
 	// Lookup таблица для преобразования латинских букв верхнего регистра к нижнему (сложение).
 	// Все байты массива равны 0, кроме индексов 0x41-0x5a, в которых значение равно 0x20
 	static inline const uint8_t down[256] = {
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
 		32, 32, 32
@@ -739,6 +739,7 @@ static size_t FastMBToWide(const char* str, size_t size)
 		if (str[i] & 0x80)
 			return i;
 	}
+
 	return size;
 }
 
@@ -759,6 +760,7 @@ static size_t FastMBToWide(wchar_t* out, const char* str, size_t size)
 
 		out[i] = c;
 	}
+
 	return size;
 }
 
@@ -771,7 +773,7 @@ static void MBToWide(std::wstring& out, MBCodePage codePage, const char* str, si
 
 		// Мне не известно, в какое максимальное количество codepoint UTF-16 может быть закодирован отдельный символ Ansi
 		// или какая-либо комбинация символов при конвертировании из Ansi (ACP). И чтобы наверняка не ошибиться, мы будем
-		// искать необходимый размер буфера, только если длина исходной строки будет больше 1/4 размера локального буфера
+		// искать необходимый размер буфера, только если длина исходной строки будет больше 1/4 размера локального буфера.
 		// Для UTF-8 в худшем случае на каждый байт исходной строки будет приходится по одному codepoint UTF-16, в других
 		// случаях длина результирующей строки всегда будет меньше количества байт в исходной
 		if (auto limit = (codePage == MBCodePage::Ansi) ? LOCAL_SIZE / 4 : LOCAL_SIZE; size > limit)
@@ -846,6 +848,7 @@ static int MBToWide(wchar_t* buffer, size_t bufferSize, MBCodePage codePage, con
 				count += len;
 			}
 		}
+
 		return static_cast<int>(count);
 	#else
 		#error Not implemented
@@ -860,6 +863,7 @@ static size_t FastWideToMB(const wchar_t* str, size_t size)
 		if (str[i] & 0xffffff80)
 			return i;
 	}
+
 	return size;
 }
 
@@ -877,6 +881,7 @@ static size_t FastWideToMB(char* out, const wchar_t* str, size_t size)
 
 		out[i] = static_cast<char>(c);
 	}
+
 	return size;
 }
 
@@ -965,6 +970,7 @@ static int WideToMB(char* buffer, size_t bufferSize, MBCodePage codePage, const 
 				count += len;
 			}
 		}
+
 		return static_cast<int>(count);
 	#else
 		#error Not implemented
@@ -1121,6 +1127,7 @@ static void Split(std::vector<StringT>& tokens, const std::basic_string_view<Cha
 				if (left < right) while (*right == 32 || *right == 9) --right;
 				tokenLen = right - left + 1;
 			}
+
 			if (tokenLen || (flags & SPLIT_ALLOW_EMPTY))
 				tokens.emplace_back(left, tokenLen);
 		}
