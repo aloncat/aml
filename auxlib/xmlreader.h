@@ -267,8 +267,8 @@ protected:
 	void GetNextToken(XmlBufferedView& out, XmlData& data, int stopTabIdx);
 	bool GetQuotedAttrValue(XmlData& data);
 
-	static void SkipWhitespaces(XmlData& data);
-	static void SkipWhitespacesImpl(XmlData& data);
+	static void SkipWhitespaces(XmlData& data, XmlBufferedView* safeBuffered = nullptr);
+	static void SkipWhitespacesImpl(XmlData& data, XmlBufferedView* safeBuffered);
 	static bool SkipComment(XmlData& data);
 
 	void SetError(std::wstring_view text);

@@ -484,7 +484,8 @@ bool XmlReader::Parse(util::WZStringView filePath)
 bool XmlReader::Parse(util::File& file)
 {
 	m_LastError.clear();
-	bool result = false;
+	m_IsParsingProlog = false;
+	m_HasParsedProlog = false;
 
 	XmlData data(file);
 	if (CheckData(data))
@@ -493,11 +494,11 @@ bool XmlReader::Parse(util::File& file)
 		if (ParseDocument(data))
 		{
 			Invoke(docClosedCb);
-			result = true;
+			return true;
 		}
 	}
 
-	return result;
+	return false;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -578,7 +579,7 @@ bool XmlReader::ParseElement(XmlData& data)
 	} else
 	{
 		XmlStringView empty;
-		SkipWhitespaces(data);
+		SkipWhitespaces(data, &s);
 		if (*data.data == '>')
 		{
 			// Пустой элемент без атрибутов
@@ -685,7 +686,7 @@ bool XmlReader::ParseElement(XmlData& data)
 bool XmlReader::ParseAttr(XmlData& data)
 {
 	GetNextToken(m_AttrName, data, ST_ATTR_NAME);
-	SkipWhitespaces(data);
+	SkipWhitespaces(data, &m_AttrName);
 
 	while (const auto next = *data.data)
 	{
@@ -700,7 +701,7 @@ bool XmlReader::ParseAttr(XmlData& data)
 			}
 
 			++data.data;
-			SkipWhitespaces(data);
+			SkipWhitespaces(data, &m_AttrName);
 
 			const auto quote = *data.data;
 			if (quote != '\'' && quote != '\"')
@@ -987,19 +988,19 @@ bool XmlReader::GetQuotedAttrValue(XmlData& data)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-inline void XmlReader::SkipWhitespaces(XmlData& data)
+inline void XmlReader::SkipWhitespaces(XmlData& data, XmlBufferedView* safeBuffered)
 {
 	// Довольно часто, например слева и справа от "=" при парсинге атрибутов, "пустые" символы
 	// отсутствуют. Чтобы не вызывать каждый раз функцию (для полной проверки), убедимся перед
 	// её вызовом, что мы стоим на пробеле или другом символе с меньшим кодом (включая 0)
 	if (*data.data <= 32)
 	{
-		SkipWhitespacesImpl(data);
+		SkipWhitespacesImpl(data, safeBuffered);
 	}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-AML_NOINLINE void XmlReader::SkipWhitespacesImpl(XmlData& data)
+AML_NOINLINE void XmlReader::SkipWhitespacesImpl(XmlData& data, XmlBufferedView* safeBuffered)
 {
 	for (wchar_t* p = data.data;;)
 	{
@@ -1011,6 +1012,9 @@ AML_NOINLINE void XmlReader::SkipWhitespacesImpl(XmlData& data)
 				data.data = p - 1;
 				break;
 			}
+
+			if (safeBuffered)
+				safeBuffered->Buffer();
 			if (!data.GetMoreData())
 				break;
 			p = data.data;
