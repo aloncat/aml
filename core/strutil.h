@@ -244,28 +244,28 @@ inline int StrNCmp(const wchar_t* strA, const wchar_t* strB, size_t count)
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(std::string_view strA, std::string_view strB, size_t count)
 {
-	// TODO: см. комментарий к соответствующей функции StrCmp
+	// См. комментарий к соответствующей функции StrCmp
 	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(std::wstring_view strA, std::wstring_view strB, size_t count)
 {
-	// TODO: см. комментарий к соответствующей функции StrCmp
+	// См. комментарий к соответствующей функции StrCmp
 	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(const std::string& strA, const std::string& strB, size_t count)
 {
-	// TODO: см. комментарий к соответствующей функции StrCmp
+	// См. комментарий к соответствующей функции StrCmp
 	return strA.compare(0, count, strB, 0, count);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 inline int StrNCmp(const std::wstring& strA, const std::wstring& strB, size_t count)
 {
-	// TODO: см. комментарий к соответствующей функции StrCmp
+	// См. комментарий к соответствующей функции StrCmp
 	return strA.compare(0, count, strB, 0, count);
 }
 
@@ -310,15 +310,15 @@ std::string TrimRight(std::string_view str);
 std::wstring TrimRight(std::wstring_view str);
 
 // Функции Trim*Inplace отличаются от обычных функций Trim* тем, что изменяют непосредственно строку str
-// и не возвращают результат. Параметр fast позволяет выбрать способ модификации строки: если он равен
-// true, то будет использован быстрый метод без изменения размера памяти, занимаемой строкой; если
-// параметр fast равен false, то по возможности объём пямяти, занимаемый строкой, будет уменьшен
-void TrimInplace(std::string& str, bool fast = true);
-void TrimInplace(std::wstring& str, bool fast = true);
-void TrimLeftInplace(std::string& str, bool fast = true);
-void TrimLeftInplace(std::wstring& str, bool fast = true);
-void TrimRightInplace(std::string& str, bool fast = true);
-void TrimRightInplace(std::wstring& str, bool fast = true);
+// и не возвращают результат. Параметр shrink позволяет выбрать способ модификации строки: если он равен
+// false, то будет использован быстрый метод без изменения размера памяти, занимаемой строкой; если же
+// он равен true, то по возможности объём пямяти, занимаемый строкой, будет уменьшен
+void TrimInplace(std::string& str, bool shrink = false);
+void TrimInplace(std::wstring& str, bool shrink = false);
+void TrimLeftInplace(std::string& str, bool shrink = false);
+void TrimLeftInplace(std::wstring& str, bool shrink = false);
+void TrimRightInplace(std::string& str, bool shrink = false);
+void TrimRightInplace(std::wstring& str, bool shrink = false);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //

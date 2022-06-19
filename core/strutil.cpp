@@ -65,6 +65,7 @@ int StrInsCmp(const char* strA, const char* strB)
 		b = static_cast<unsigned char>(*strB++);
 		b += caseTT::down[b];
 	} while (b && a == b);
+
 	return a - b;
 }
 
@@ -104,6 +105,7 @@ static int StrInsCmpImpl(const char* strA, const char* strB, size_t count)
 		b = static_cast<unsigned char>(*strB++);
 		b += caseTT::down[b];
 	} while (a == b && --count);
+
 	return a - b;
 }
 
@@ -204,6 +206,7 @@ int StrNInsCmp(const char* strA, const char* strB, size_t count)
 		b = static_cast<unsigned char>(*strB++);
 		b += caseTT::down[b];
 	} while (b && a == b && --count);
+
 	return a - b;
 }
 
@@ -541,6 +544,7 @@ static size_t FindFirstNotSpace(const T& str)
 		if (*p != 9 && *p != 32)
 			return i;
 	}
+
 	return T::npos;
 }
 
@@ -555,6 +559,7 @@ static size_t FindLastNotSpace(const T& str)
 		if (*p != 9 && *p != 32)
 			return i - 1;
 	}
+
 	return T::npos;
 }
 
@@ -639,25 +644,26 @@ static bool TrimInplaceImpl(StringT& str)
 		str.erase(0, startPos);
 		result = true;
 	}
+
 	return result;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimInplace(std::string& str, bool fast)
+void TrimInplace(std::string& str, bool shrink)
 {
-	if (TrimInplaceImpl(str) && !fast)
+	if (TrimInplaceImpl(str) && shrink)
 		str.shrink_to_fit();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimInplace(std::wstring& str, bool fast)
+void TrimInplace(std::wstring& str, bool shrink)
 {
-	if (TrimInplaceImpl(str) && !fast)
+	if (TrimInplaceImpl(str) && shrink)
 		str.shrink_to_fit();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimLeftInplace(std::string& str, bool fast)
+void TrimLeftInplace(std::string& str, bool shrink)
 {
 	if (size_t startPos = FindFirstNotSpace(str))
 	{
@@ -666,13 +672,13 @@ void TrimLeftInplace(std::string& str, bool fast)
 		else
 			str.clear();
 
-		if (!fast)
+		if (shrink)
 			str.shrink_to_fit();
 	}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimLeftInplace(std::wstring& str, bool fast)
+void TrimLeftInplace(std::wstring& str, bool shrink)
 {
 	if (size_t startPos = FindFirstNotSpace(str))
 	{
@@ -681,13 +687,13 @@ void TrimLeftInplace(std::wstring& str, bool fast)
 		else
 			str.clear();
 
-		if (!fast)
+		if (shrink)
 			str.shrink_to_fit();
 	}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimRightInplace(std::string& str, bool fast)
+void TrimRightInplace(std::string& str, bool shrink)
 {
 	size_t endPos = FindLastNotSpace(str);
 
@@ -698,12 +704,12 @@ void TrimRightInplace(std::string& str, bool fast)
 	else
 		return;
 
-	if (!fast)
+	if (shrink)
 		str.shrink_to_fit();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void TrimRightInplace(std::wstring& str, bool fast)
+void TrimRightInplace(std::wstring& str, bool shrink)
 {
 	size_t endPos = FindLastNotSpace(str);
 
@@ -714,7 +720,7 @@ void TrimRightInplace(std::wstring& str, bool fast)
 	else
 		return;
 
-	if (!fast)
+	if (shrink)
 		str.shrink_to_fit();
 }
 
