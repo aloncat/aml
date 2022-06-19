@@ -227,6 +227,9 @@ public:
 	// Парсит документ из файла file
 	bool Parse(util::File& file);
 
+	// Вызов этой функции из любого колл-бэка прервёт парсинг (функция Parse вернёт false)
+	void StopParsing() { m_ShouldStop = true; }
+
 	// Возвращает ссылку на строку с сообщением об ошибке (актуально после
 	// вызова функции Parse, если она завершилась ошибкой и вернула false)
 	const std::wstring& GetLastError() const { return m_LastError; }
@@ -281,6 +284,7 @@ protected:
 	StopTab* m_StopTabs = nullptr;	// Таблицы разделителей токенов для парсинга
 	bool m_IsParsingProlog = false;	// true, если обрабатывается элемент пролога
 	bool m_HasParsedProlog = false;	// true, если пролог обработан (тег закрыт)
+	bool m_ShouldStop = false;		// true, если парсинг должен быть прерван
 };
 
 } // namespace aux

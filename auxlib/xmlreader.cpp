@@ -486,6 +486,7 @@ bool XmlReader::Parse(util::File& file)
 	m_LastError.clear();
 	m_IsParsingProlog = false;
 	m_HasParsedProlog = false;
+	m_ShouldStop = false;
 
 	XmlData data(file);
 	if (CheckData(data))
@@ -528,6 +529,11 @@ bool XmlReader::ParseDocument(XmlData& data)
 			if (!ParseElement(data))
 			{
 				CheckData(data);
+				return false;
+			}
+			if (m_ShouldStop)
+			{
+				SetError(L"Parsing has been cancelled");
 				return false;
 			}
 		} else

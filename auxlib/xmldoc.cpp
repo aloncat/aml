@@ -39,12 +39,14 @@ bool NumDecoder::Decode(const wchar_t* from, const wchar_t* to, int& value)
 		else
 			break;
 	}
-	
+
 	for (unsigned v, result = 0;;)
 	{
 		if (v = static_cast<unsigned>(*from) - '0'; v > 9)
 			return false;
+
 		result = 10 * result + v;
+
 		if (++from == to)
 		{
 			value = negative ? 0 - result : result;
@@ -66,6 +68,7 @@ inline bool NumDecoder::IsGreater(const wchar_t* lhs, const char* rhs)
 			return l > r;
 		}
 	}
+
 	return false;
 }
 
@@ -125,6 +128,8 @@ template<class Iter>
 auto XmlObjectPool::MakeArray(Iter first, size_t count)
 {
 	using T = typename Iter::value_type;
+	static_assert(std::is_trivially_copyable_v<T>, "Only trivially copyable types are allowed");
+
 	auto items = static_cast<T*>(Allocate(GetSize<T>(count)));
 
 	auto it = first;
@@ -203,6 +208,7 @@ void* XmlObjectPool::Allocate(size_t sizeInBytes)
 			out = block->data;
 		}
 	}
+
 	return out;
 }
 
@@ -238,6 +244,7 @@ const XmlNode* XmlNode::Node(std::wstring_view name) const
 			return m_Nodes[i]->Node(right);
 		}
 	}
+
 	return nullptr;
 }
 
@@ -246,6 +253,7 @@ std::wstring_view XmlNode::Attr(std::wstring_view name) const
 {
 	if (auto i = FindAttr(name); i != NPOS)
 		return m_Attributes[i].value;
+
 	return std::wstring_view();
 }
 
@@ -259,6 +267,7 @@ int XmlNode::Attr(std::wstring_view name, int def) const
 		if (NumDecoder::Decode(v.data, v.data + v.size, result))
 			return result;
 	}
+
 	return def;
 }
 
@@ -280,6 +289,7 @@ bool XmlNode::Attr(std::wstring_view name, bool def) const
 				return false;
 		}
 	}
+
 	return def;
 }
 
@@ -301,15 +311,16 @@ size_t XmlNode::FindAttr(std::wstring_view name) const
 {
 	if (!name.empty())
 	{
-		// NB: сейчас используется линейный поиск со сравнением строк. Это не плохо. Среднее количество атрибутов среди
-		// всех узлов с атрибутами обычно небольшое (не превышает в среднем 4). Поэтому бинарный поиск не даст эффекта.
+		// Сейчас используется линейный поиск со сравнением строк. Это не плохо. Среднее количество атрибутов среди
+		// всех узлов с атрибутами обычно небольшое (в среднем не превышает 4). Поэтому бинарный поиск не даст эффекта.
 		// Также, тест показал, что добавление хеша имени снижает и скорость загрузки, и скорость работы с атрибутами
 		for (size_t i = 0, count = m_Attributes.size(); i < count; ++i)
 		{
-			if (name == m_Attributes[i].name)
+			if (m_Attributes[i].name == name)
 				return i;
 		}
 	}
+
 	return NPOS;
 }
 
@@ -325,10 +336,11 @@ size_t XmlNode::FindNode(std::wstring_view name) const
 		// а не поиск по имени. Поэтому бинарный поиск с хешем имени пока не реализованы
 		for (size_t i = 0, count = m_Nodes.size(); i < count; ++i)
 		{
-			if (name == m_Nodes[i]->m_Name)
+			if (m_Nodes[i]->m_Name == name)
 				return i;
 		}
 	}
+
 	return NPOS;
 }
 
@@ -400,6 +412,7 @@ template<class T> bool XmlDocument::LoadFrom(T& source)
 		// Некоторые элементы остались не закрыты
 		OnError(info, L"Unexpected end of data");
 	}
+
 	return false;
 }
 
@@ -459,7 +472,7 @@ void XmlDocument::OnTagClosed(void* infoPtr, std::wstring_view name)
 			if (info->node == info->self->m_Root)
 				return;
 		}
-		else if (name != info->node->m_Name)
+		else if (info->node->m_Name != name)
 		{
 			OnError(*info, L"Unpaired closing tag encountered");
 			return;
@@ -479,7 +492,7 @@ void XmlDocument::OnAttr(void* infoPtr, std::wstring_view name, std::wstring_vie
 {
 	if (Info* info = static_cast<Info*>(infoPtr))
 	{
-		// NB: атрибуты пролога (узел == m_Root) пропускаем
+		// Атрибуты пролога (узел == m_Root) пропускаем
 		if (info->node != info->self->m_Root && Verify(!name.empty()))
 		{
 			auto& pool = info->self->m_Pool;
@@ -523,7 +536,7 @@ bool XmlDocument::SetNodeAttrAndData(Info& info)
 	// Копируем полученные атрибуты элемента
 	if (const size_t count = info.attributes.size())
 	{
-		// Проверим на дубликаты. NB: возможно, способ не оптимальный. Но с учётом небольшого среднего количества атрибутов
+		// Проверим на дубликаты. Возможно, способ не оптимальный. Но с учётом небольшого среднего количества атрибутов
 		// у отдельно взятого элемента, это быстрее, чем сначала сортировать атрибуты и затем попарно сравнивать их имена
 		const auto& v = info.attributes;
 		for (size_t i = 1; i < count; ++i)
@@ -559,18 +572,22 @@ void XmlDocument::SetNodeChildren(Info& info)
 		info.node->m_Nodes = info.self->m_Pool.MakeArray(first, childCount);
 		info.bufferedNodes.resize(prevIndex);
 	}
+
 	info.nodeStack.pop_back();
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
 void XmlDocument::OnError(Info& info, std::wstring_view text)
 {
-	// При обнаружении ошибки прерываем парсинг. Точнее, сам парсер
-	// продолжит работу, но мы уже не будем обрабатывать документ
+	// При обнаружении ошибки прерываем парсинг. Точнее, сам парсер ещё некоторое
+	// время будет продолжать работу, но мы уже не будем обрабатывать документ
 	info.parser->tagOpenedCb = nullptr;
 	info.parser->tagClosedCb = nullptr;
 	info.parser->attrCb = nullptr;
 	info.parser->dataCb = nullptr;
 
-	info.self->m_LastError = text;
+	if (info.self->m_LastError.empty())
+		info.self->m_LastError = text;
+
+	info.parser->StopParsing();
 }
