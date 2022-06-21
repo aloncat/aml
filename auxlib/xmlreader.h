@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <core/array.h>
 #include <core/forward.h>
 #include <core/platform.h>
 #include <core/strcommon.h>
@@ -13,6 +14,29 @@
 #include <string_view>
 
 namespace aux {
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//   NumDecoder - декодирование чисел из строк
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//--------------------------------------------------------------------------------------------------------------------------------
+struct NumDecoder
+{
+	// Декодирует строку, содержащую целое десятичное число, и сохраняет его в value. Функция
+	// вернёт true, если строка содержит корректное число, умещающееся в переменной типа int
+	static bool Decode(const wchar_t* from, const wchar_t* to, int& value);
+
+	// Декодирует строку, содержащую целое шестнадцатеричное число, и сохраняет его в value. Функция
+	// вернёт true, если строка содержит корректное число и оно умещается в переменной типа unsigned
+	static bool DecodeHex(const wchar_t* from, const wchar_t* to, unsigned& value);
+
+protected:
+	// Возвращает true, если число во from больше числа в num. Строка num
+	// должна быть null-терминированной, а длины строк from и num - равны
+	static bool IsGreater(const wchar_t* from, const char* num);
+};
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -172,6 +196,10 @@ public:
 	// (если значения data и size не модифицировались напрямую)
 	void Buffer();
 
+	// Буферизирует строку (если она ещё не в буфере) и оставляет в ней
+	// не более count последних символов, убирая лишние символы в начале
+	void KeepTail(size_t count);
+
 protected:
 	std::wstring m_Buffer;		// Внутренний буфер
 	bool m_IsBuffered = false;	// true, если строка в буфере
@@ -235,6 +263,8 @@ public:
 	const std::wstring& GetLastError() const { return m_LastError; }
 
 protected:
+	using Array = util::FlexibleArray<wchar_t>;
+
 	static constexpr size_t STOP_TAB_SIZE = 64;
 	using StopTab = uint8_t[STOP_TAB_SIZE];
 
@@ -260,7 +290,7 @@ protected:
 
 	void Invoke(CommonCb cb);
 	void Invoke(TagCb cb, XmlStringView name);
-	void InvokeDataCb(XmlStringView text, bool firstPart);
+	size_t InvokeDataCb(XmlStringView text, bool firstPart, bool lastPart);
 
 	static void Trim(XmlStringView& text, int options);
 	bool ProcessAttr(XmlData& data);
@@ -274,14 +304,32 @@ protected:
 	static void SkipWhitespacesImpl(XmlData& data, XmlBufferedView* safeBuffered);
 	static bool SkipComment(XmlData& data);
 
+	// Декодирует экранированные символы из source и возвращает вью на результирующую строку. В параметре from функция
+	// принимает позицию в source, с которой начинается обработка (до этой позиции символы копируются как есть). При
+	// выходе from содержит позицию начала последней необработанной escape-последовательности (если isComplete был
+	// равен false и эта последовательность незавершена), иначе from содержит длину исходной строки
+	XmlStringView UnescapeString(XmlStringView source, size_t& from, bool isComplete);
+
+	// Декодирует escape-последовательность &...; длиной size символов, начинающуюся с from, в код
+	// символа и сохраняет его в out. Если декодировать символ не удалось, то функция вернёт 0. Иначе
+	// вернёт количество записанных в out символов (1 для обычного codepoint, 2 для суррогатной пары)
+	static size_t UnescapeChar(const wchar_t* from, size_t size, wchar_t* out);
+
+	// Кодирует указанное значение codePoint в символ или суррогатную
+	// пару UTF-16. Возвращает количество записанных символов в out
+	static size_t EncodeCP(wchar_t* out, unsigned codePoint);
+
 	void SetError(std::wstring_view text);
 	bool CheckData(XmlData& data);
 
 protected:
 	std::wstring m_LastError;		// Сообщение об ошибке (если Parse вернула false)
+	StopTab* m_StopTabs = nullptr;	// Таблицы разделителей токенов для парсинга
+
 	XmlBufferedView m_AttrName;		// Временный буфер для хранения имён атрибутов
 	XmlBufferedView m_TextString;	// Временный буфер для функции GetNextToken
-	StopTab* m_StopTabs = nullptr;	// Таблицы разделителей токенов для парсинга
+	Array m_EscapeBuffer;			// Буфер для escape-последовательностей
+
 	bool m_IsParsingProlog = false;	// true, если обрабатывается элемент пролога
 	bool m_HasParsedProlog = false;	// true, если пролог обработан (тег закрыт)
 	bool m_ShouldStop = false;		// true, если парсинг должен быть прерван

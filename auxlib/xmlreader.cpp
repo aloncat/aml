@@ -13,6 +13,100 @@ namespace aux {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
+//   NumDecoder
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// TODO: сейчас в классе NumDecoder всего 2 функции: для декодирования десятичного числа в тип int и шестнадцатеричного
+// числа в тип unsigned. В будущем мы захотим читать значения атрибутов XML других типов (например, [u]int64_t). Поэтому
+// функцию Decode лучше сделать шаблонной, чтобы она умела работать с любым целочисленным типом. Также в C++17 появилась
+// функция from_chars: она работает только с типом char* (что неудобно), зато её можно использовать для типа float
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool NumDecoder::Decode(const wchar_t* from, const wchar_t* to, int& value)
+{
+	if (from >= to)
+		return false;
+
+	bool negative = false;
+	if (*from == '-')
+	{
+		negative = true;
+		if (++from == to)
+			return false;
+	}
+
+	for (size_t remains = to - from; remains >= 10; --remains)
+	{
+		if (*from == '0')
+			++from;
+		else if (remains > 10 || IsGreater(from, negative ? "2147483648" : "2147483647"))
+			return false;
+		else
+			break;
+	}
+
+	for (unsigned v, result = 0;;)
+	{
+		if (v = static_cast<unsigned>(*from) - '0'; v > 9)
+			return false;
+
+		result = 10 * result + v;
+
+		if (++from == to)
+		{
+			value = negative ? 0 - result : result;
+			return true;
+		}
+	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+bool NumDecoder::DecodeHex(const wchar_t* from, const wchar_t* to, unsigned& value)
+{
+	if (from >= to)
+		return false;
+
+	for (size_t remains = to - from; remains > 8; --remains)
+	{
+		if (*from++ != '0')
+			return false;
+	}
+
+	unsigned result = 0;
+	for (unsigned v; from < to; ++from)
+	{
+		if (v = static_cast<unsigned>(*from) - '0'; v <= 9)
+			result = (result << 4) + v;
+		else if (v -= (v < 49) ? 17 : 49; v <= 5)
+			result = (result << 4) + v + 10;
+		else
+			return false;
+	}
+
+	value = result;
+	return true;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+inline bool NumDecoder::IsGreater(const wchar_t* lhs, const char* rhs)
+{
+	for (; *rhs; ++lhs, ++rhs)
+	{
+		auto l = static_cast<unsigned>(*lhs);
+		auto r = static_cast<unsigned char>(*rhs);
+
+		if (l != r)
+		{
+			return l > r;
+		}
+	}
+
+	return false;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
 //   XmlData
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -431,6 +525,25 @@ void XmlBufferedView::Buffer()
 	}
 }
 
+//--------------------------------------------------------------------------------------------------------------------------------
+void XmlBufferedView::KeepTail(size_t count)
+{
+	count = (size < count) ? size : count;
+
+	if (!m_IsBuffered)
+	{
+		m_Buffer.assign(data + size - count, count);
+		m_IsBuffered = true;
+	}
+	else if (count < size)
+	{
+		m_Buffer.erase(0, size - count);
+	}
+
+	data = m_Buffer.c_str();
+	size = count;
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //   XmlReader
@@ -454,6 +567,8 @@ XmlReader::XmlReader()
 	InitStopTab(ST_TAG, "> \x09\x0a\x0d");
 	InitStopTab(ST_ATTR_NAME, "/>= \x09\x0a\x0d");
 	InitStopTab(ST_ATTR_VALUE, "/> \x09\x0a\x0d");
+
+	m_EscapeBuffer.Grow(1024);
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -737,8 +852,14 @@ void XmlReader::OnMoreData(DataInfo& info)
 			wchar_t last = info.text.data[info.text.size - 1];
 			if (last != 32 && last != 9 && last != 10 && last != 13)
 			{
-				InvokeDataCb(info.prev, info.firstPart);
-				info.prev.Set(info.text);
+				if (size_t remains = InvokeDataCb(info.prev, info.firstPart, false))
+				{
+					info.prev.KeepTail(remains);
+					info.prev.Append(info.text);
+				} else
+				{
+					info.prev.Set(info.text);
+				}
 				info.firstPart = false;
 			} else
 			{
@@ -765,21 +886,32 @@ void XmlReader::OnDataReady(DataInfo& info)
 		{
 			Trim(info.text, info.prev.size ? TRIM_RIGHT : TRIM_ALL);
 		}
+
+		size_t remains = 0;
 		if (info.prev.size)
 		{
 			if (!info.text.size)
 			{
 				Trim(info.prev, TRIM_RIGHT);
 			}
-			InvokeDataCb(info.prev, info.firstPart);
+
+			remains = InvokeDataCb(info.prev, info.firstPart, !info.text.size);
 			info.firstPart = false;
-			info.prev.Reset();
-		}
-		if (info.text.size)
-		{
-			InvokeDataCb(info.text, info.firstPart);
 		}
 
+		if (info.text.size)
+		{
+			if (remains)
+			{
+				info.prev.KeepTail(remains);
+				info.prev.Append(info.text);
+				info.text = info.prev;
+			}
+
+			InvokeDataCb(info.text, info.firstPart, true);
+		}
+
+		info.prev.Reset();
 		// Приводим структуру info в исходное состояние. Вью info.text не обнуляем, так как это не
 		// имеет значения: далее мы либо начнём формировать в нём новую строку, либо закончим работу
 		info.firstPart = true;
@@ -819,14 +951,31 @@ void XmlReader::Invoke(TagCb cb, XmlStringView name)
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
-void XmlReader::InvokeDataCb(XmlStringView text, bool firstPart)
+size_t XmlReader::InvokeDataCb(XmlStringView text, bool firstPart, bool lastPart)
 {
-	// TODO: тут данные будут экранированы, т.е., например, вместо "<" мы будем иметь "&lt;". Строго говоря, мы должны уметь
-	// декодировать все предопределённые escape-последовательности и любые вида "&#N;" и "&#xN;", где N - 1 или более цифр
+	size_t lastPos = text.size;
+	const wchar_t* p = text.data;
+	for (size_t i = 0; i < lastPos; ++i)
+	{
+		if (p[i] == '&')
+		{
+			lastPos = i;
+			break;
+		}
+	}
+
+	size_t remains = 0;
+	if (lastPos < text.size)
+	{
+		const size_t size = text.size;
+		text = UnescapeString(text, lastPos, lastPart);
+		remains = size - lastPos;
+	}
 
 	// Мы не проверяем значение dataCb перед вызовом, так как
 	// эта функция вызывается, только если колл-бэк установлен
 	dataCb(userData, text, firstPart);
+	return remains;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -894,8 +1043,23 @@ bool XmlReader::ProcessAttr(XmlData& data)
 
 	if (attrCb)
 	{
-		// TODO: см. комментарий в функции InvokeDataCb об escape-последовательностях
-		// (здесь это касается только значения атрибута, т.е. значения m_TextString)
+		size_t lastPos = m_TextString.size;
+		const wchar_t* p = m_TextString.data;
+		for (size_t i = 0; i < lastPos; ++i)
+		{
+			if (p[i] == '&')
+			{
+				lastPos = i;
+				break;
+			}
+		}
+
+		if (lastPos < m_TextString.size)
+		{
+			auto s = UnescapeString(m_TextString, lastPos, true);
+			m_TextString.Set(s);
+		}
+
 		attrCb(userData, m_AttrName, m_TextString);
 	}
 
@@ -1076,6 +1240,140 @@ bool XmlReader::SkipComment(XmlData& data)
 			break;
 		}
 	}
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+XmlStringView XmlReader::UnescapeString(XmlStringView source, size_t& from, bool isComplete)
+{
+	// Чтобы не вычислять точный размер результирующей строки, увеличим
+	// размер массива до длины исходной строки, если его размер меньше
+	m_EscapeBuffer.Grow(source.size);
+	wchar_t* out = m_EscapeBuffer;
+	size_t outSize = 0;
+
+	const wchar_t* p = source.data;
+	const wchar_t* next = p + from;
+	for (auto end = p + source.size;;)
+	{
+		while (next < end && *next != '&')
+			++next;
+
+		memcpy(out + outSize, p, (next - p) * sizeof(wchar_t));
+		outSize += next - p;
+		p = next;
+
+		if (next >= end)
+			break;
+
+		auto dp = next + 1;
+		while (dp < end && *dp != ';')
+			++dp;
+
+		if (dp >= end)
+			break;
+
+		if (auto count = UnescapeChar(next + 1, dp - next, out + outSize))
+		{
+			outSize += count;
+			p = dp + 1;
+		}
+		next = dp + 1;
+	}
+
+	from = p - source.data;
+	// Если последняя escape-последовательность была неполной, то from будет меньше размера исходной
+	// строки. Если флаг isComplete установлен, то добавим оставшиеся в source символы к результату
+	if (const size_t remains = source.size - from; remains && isComplete)
+	{
+		memcpy(out + outSize, source.data + from, remains * sizeof(wchar_t));
+		outSize += remains;
+		from += remains;
+	}
+
+	return { out, outSize };
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+AML_NOINLINE size_t XmlReader::UnescapeChar(const wchar_t* from, size_t size, wchar_t* out)
+{
+	if (size < 3 || size > 9)
+		return false;
+
+	if (from[0] == '#')
+	{
+		if (from[1] == 'x' || from[1] == 'X')
+		{
+			unsigned num;
+			if (NumDecoder::DecodeHex(from + 2, from + size - 1, num))
+				return EncodeCP(out, num);
+		} else
+		{
+			int num;
+			if (NumDecoder::Decode(from + 1, from + size - 1, num) && num >= 0)
+				return EncodeCP(out, num);
+		}
+	}
+	else if (size == 3)
+	{
+		if (!util::StrNInsCmp(from, L"gt", 2))
+		{
+			*out = '>';
+			return 1;
+		}
+		if (!util::StrNInsCmp(from, L"lt", 2))
+		{
+			*out = '<';
+			return 1;
+		}
+	}
+	else if (size == 4)
+	{
+		if (!util::StrNInsCmp(from, L"amp", 3))
+		{
+			*out = '&';
+			return 1;
+		}
+	}
+	else if (size == 5)
+	{
+		if (!util::StrNInsCmp(from, L"apos", 4))
+		{
+			*out = '\'';
+			return 1;
+		}
+		if (!util::StrNInsCmp(from, L"quot", 4))
+		{
+			*out = '\"';
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+size_t XmlReader::EncodeCP(wchar_t* out, unsigned codePoint)
+{
+	if (codePoint > 0xd7ff)
+	{
+		// Невалидные значения заменяем на "�" (U+FFFD)
+		if (codePoint < 0xe000 || codePoint > 0x10ffff)
+		{
+			*out = 0xfffd;
+			return 1;
+		}
+		// Суррогатная пара UTF-16 (ОС Windows)
+		else if (sizeof(wchar_t) == 2 && codePoint > 0xffff)
+		{
+			codePoint -= 0x10000;
+			out[0] = static_cast<wchar_t>(0xd800 + (codePoint >> 10));
+			out[1] = 0xdc00 + (codePoint & 0x3ff);
+			return 2;
+		}
+	}
+
+	*out = static_cast<wchar_t>(codePoint);
+	return 1;
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------

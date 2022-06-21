@@ -12,68 +12,6 @@ using namespace aux;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-//   NumDecoder
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-//--------------------------------------------------------------------------------------------------------------------------------
-bool NumDecoder::Decode(const wchar_t* from, const wchar_t* to, int& value)
-{
-	if (from >= to)
-		return false;
-
-	bool negative = false;
-	if (*from == '-')
-	{
-		negative = true;
-		if (++from == to)
-			return false;
-	}
-
-	for (size_t remains = to - from; remains >= 10; --remains)
-	{
-		if (*from == '0')
-			++from;
-		else if (remains > 10 || IsGreater(from, negative ? "2147483648" : "2147483647"))
-			return false;
-		else
-			break;
-	}
-
-	for (unsigned v, result = 0;;)
-	{
-		if (v = static_cast<unsigned>(*from) - '0'; v > 9)
-			return false;
-
-		result = 10 * result + v;
-
-		if (++from == to)
-		{
-			value = negative ? 0 - result : result;
-			return true;
-		}
-	}
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-inline bool NumDecoder::IsGreater(const wchar_t* lhs, const char* rhs)
-{
-	for (; *rhs; ++lhs, ++rhs)
-	{
-		auto l = static_cast<unsigned>(*lhs);
-		auto r = static_cast<unsigned char>(*rhs);
-
-		if (l != r)
-		{
-			return l > r;
-		}
-	}
-
-	return false;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
 //   XmlObjectPool
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
