@@ -57,6 +57,10 @@ public:
 	// и возвращает false, если это обычное приложение (без окна консоли или с окном, но созданным нами)
 	static bool IsConsoleApp();
 
+	// Возвращает строку с именем языка пользователя, основываясь на текущей локали приложения.
+	// Возвращаемая строка содержит название языка на английском (пример: "English", "German")
+	static std::wstring GetUserLanguage();
+
 protected:
 	SystemInfo();
 	virtual ~SystemInfo() override = default;

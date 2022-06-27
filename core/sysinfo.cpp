@@ -8,6 +8,7 @@
 #include "console.h"
 #include "datetime.h"
 #include "filesystem.h"
+#include "util.h"
 #include "winapi.h"
 
 #if AML_OS_WINDOWS
@@ -105,6 +106,21 @@ bool SystemInfo::IsConsoleApp()
 		// окно консоли и в данный момент у нашего процесса есть консольное окно. Недостаток этого способа в
 		// том, что если наше приложение консольное, но запущено в DETACHED состоянии, то функция вёрнет false
 		return !Helper::HasAllocatedConsole() && ::GetConsoleWindow() != nullptr;
+	#else
+		#error Not implemented
+	#endif
+}
+
+//--------------------------------------------------------------------------------------------------------------------------------
+std::wstring SystemInfo::GetUserLanguage()
+{
+	#if AML_OS_WINDOWS
+		wchar_t buffer[64];
+		auto id = ::GetThreadLocale();
+		if (int len = ::GetLocaleInfoW(id, LOCALE_SENGLISHLANGUAGENAME, buffer, util::CountOf(buffer)); len > 0)
+			return std::wstring(buffer, len);
+
+		return L"English";
 	#else
 		#error Not implemented
 	#endif
