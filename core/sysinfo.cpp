@@ -117,7 +117,7 @@ std::wstring SystemInfo::GetUserLanguage()
 	#if AML_OS_WINDOWS
 		wchar_t buffer[64];
 		auto id = ::GetThreadLocale();
-		if (int len = ::GetLocaleInfoW(id, LOCALE_SENGLISHLANGUAGENAME, buffer, util::CountOf(buffer)); len > 0)
+		if (int len = ::GetLocaleInfoW(id, LOCALE_SENGLISHLANGUAGENAME, buffer, static_cast<int>(CountOf(buffer))); len > 0)
 			return std::wstring(buffer, len);
 
 		return L"English";
